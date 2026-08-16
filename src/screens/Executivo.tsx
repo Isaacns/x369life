@@ -132,8 +132,12 @@ export default function Executivo() {
         <p>Leitura de carteira para conselho e diretoria — concentração, exposição, capacidade e calendário.</p>
       </div>
 
-      {/* ---------- veredito ---------- */}
-      <div className="card card-p" style={{ marginBottom: 16, borderLeft: '3px solid var(--brand)' }}>
+      {/* ---------- veredito ----------
+          Sem filete de acento: este cartão já é o primeiro da tela e carrega os
+          números maiores. A barra colorida não codificava nada — era só "olhe
+          para mim". Onde o filete sobrevive no sistema (Inteligência, Fontes),
+          ele codifica estado: severidade do achado, situação da fonte. */}
+      <div className="card card-p" style={{ marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 20, marginBottom: 16 }}>
           <Grande rotulo="Valor em disputa" valor={moeda(valorBruto, 'BRL', true)} sub={`${abertas.length} editais abertos`} />
           <Grande rotulo="Valor esperado" valor={moeda(valorEsperado, 'BRL', true)} cor="var(--brand)"
