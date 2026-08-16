@@ -110,7 +110,7 @@ h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
 .x-shell { display: grid; grid-template-columns: 244px 1fr; min-height: 100vh; }
 .x-side {
   background: color-mix(in srgb, var(--navy) 88%, transparent);
-  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   color: #B7C6D8; padding: 18px 12px 14px;
   display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
   border-right: 1px solid rgba(255,255,255,.06);
@@ -133,7 +133,7 @@ h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
   display: flex; align-items: center; gap: 12px; padding: 11px 22px;
   border-bottom: 1px solid var(--vidro-borda); position: sticky; top: 0; z-index: 20;
   background: var(--vidro-forte);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 .x-content { padding: 22px; width: 100%; max-width: 1360px; }
 .x-burger { display: none; }
@@ -155,7 +155,7 @@ h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
 .card {
   background: var(--vidro); border: 1px solid var(--vidro-borda);
   border-radius: var(--radius); box-shadow: var(--card-shadow);
-  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
 }
 /* Tabela e formulário voltam ao opaco: vidro atrás de dado denso
    custa legibilidade, e este é um produto de leitura de números. */
