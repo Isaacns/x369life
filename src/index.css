@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+/* ============================================================
+   X369life — tema do produto
+   Acento registrado (§2 dos padrões VIZIO):
+   navy #0A1A2F · azul profundo #1B5A96 · teal #0E9384 (só positivo)
+   âmbar #B4790E (atenção) · #B42318 (risco) · Inter
+   Direção do briefing §7: fundo claro, azul institucional, nada de
+   neon, nada de gradiente gratuito, gráfico discreto, muito respiro.
+   ============================================================ */
+@theme {
+  --color-navy: #0A1A2F;
+  --color-brand: #1B5A96;
+  --color-teal: #0E9384;
+  /* Identidade tipográfica própria — decisão do Isaac (16/08/2026).
+     O ecossistema usa Inter; o X369life não. Ver index.html. */
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+:root {
+  --bg: #F6F8FB;  --bg2: #EDF1F7;  --card: #FFFFFF;  --card2: #F8FAFC;
+  --line: #E3E9F0; --line2: #CDD7E3;
+  --tx: #0E1B2B;  --tx2: #55657A;  --tx3: #8A99AC;
+  --navy: #0A1A2F; --navy2: #12293F;
+  --brand: #1B5A96; --brand-deep: #14446F; --brand-soft: #E8F0F8;
+  --teal: #0E9384; --amber: #B4790E; --danger: #B42318; --info: #2E6FB8;
+  --card-shadow: 0 1px 2px rgba(14,27,43,.04), 0 4px 14px rgba(14,27,43,.05);
+  --radius: 14px;
+  --amber-lit: #E0A93C;
+  --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Bricolage Grotesque", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+:root[data-theme="dark"] {
+  --bg: #08131F;  --bg2: #0C1B2B;  --card: #0F2135;  --card2: #0C1B2B;
+  --line: rgba(148,171,196,.14); --line2: rgba(148,171,196,.24);
+  --tx: #E6EDF5;  --tx2: #97A8BC;  --tx3: #6B7D93;
+  --brand: #4A90D9; --brand-deep: #2E6FB8; --brand-soft: rgba(74,144,217,.14);
+  --teal: #2CB5A0; --amber: #D9A441; --danger: #E5705F;
+  --card-shadow: 0 1px 2px rgba(0,0,0,.32), 0 6px 22px rgba(0,0,0,.34);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--tx);
+  font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+/* Títulos na display; rótulos e números na mono. A hierarquia é
+   tipográfica antes de ser cromática — o acento fica para o dado. */
+h1, h2, h3, .x-logo b { font-family: var(--display); }
+.stat .v, .stat .k, .badge, .aba, table.tbl th,
+table.tbl td[data-l]::before, .fld > span { font-family: var(--mono); }
+.stat .v, table.tbl td, .kb-card .m { font-variant-numeric: tabular-nums; }
+/* §2 — barra de rolagem invisível (a rolagem continua funcionando) */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
+a { color: var(--brand); text-decoration: none; }
+h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---------- marca ----------
+   O símbolo é uma malha 3×3 de pontos com a diagonal acesa: um parque
+   de iluminação reduzido a nove pontos, e o "369" lido na diagonal.
+   Componente em ui/Marca.tsx. */
+.x-logo { display: inline-flex; align-items: center; gap: 10px; }
+.x-logo svg { flex: none; display: block; }
+.x-logo b {
+  font-family: var(--display); font-weight: 800; font-size: 17px;
+  letter-spacing: -.035em; font-variant-numeric: lining-nums;
+}
+.x-logo b i { font-style: normal; font-weight: 500; color: var(--tx2); letter-spacing: -.01em; }
+
+/* Assinatura da marca: fileira de pontos de luz. Aparece como filete
+   no rodapé da barra lateral e no topo da tela de acesso. */
+.fileira-luz {
+  height: 2px; border-radius: 2px;
+  background: repeating-linear-gradient(90deg,
+    var(--amber-lit) 0 2px, transparent 2px 26px);
+  opacity: .55;
+}
+
+/* ---------- botões (§13 — uma família, uma régua) ---------- */
+.b, .b-ghost, .b-sm {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  white-space: nowrap; flex: none; font-family: inherit; font-weight: 600;
+  border-radius: 10px; cursor: pointer; transition: filter .12s, background .12s;
+}
+.b { height: 40px; padding: 0 18px; border: none; background: var(--brand); color: #fff; font-size: 14px; }
+.b:hover { background: var(--brand-deep); }
+.b:disabled, .b-ghost:disabled, .b-sm:disabled { opacity: .5; cursor: not-allowed; }
+.b-ghost { height: 40px; padding: 0 16px; border: 1px solid var(--line2); background: transparent; color: var(--tx); font-size: 14px; }
+.b-ghost:hover { background: var(--bg2); }
+.b-sm { height: 32px; padding: 0 12px; border: 1px solid var(--line2); background: var(--card); color: var(--tx); font-size: 13px; border-radius: 8px; }
+.b-sm:hover { background: var(--bg2); }
+.b-full { width: 100%; }
+
+/* ---------- shell ---------- */
+.x-shell { display: grid; grid-template-columns: 244px 1fr; min-height: 100vh; }
+.x-side {
+  background: var(--navy); color: #B7C6D8; padding: 18px 12px 14px;
+  display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.x-side .x-logo b { color: #fff; }
+.x-side .x-logo b i { color: #7E93AB; }
+.x-side .grupo { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: #64788F; padding: 14px 12px 5px; }
+.x-nav {
+  display: flex; align-items: center; gap: 11px; padding: 9px 12px; border-radius: 9px;
+  color: #A7B8CC; font-size: 14px; border: none; background: none; width: 100%;
+  text-align: left; cursor: pointer; font-family: inherit;
+}
+.x-nav .ic { width: 16px; text-align: center; font-size: 13px; opacity: .8; }
+.x-nav:hover { background: rgba(255,255,255,.06); color: #fff; }
+.x-nav.on { background: rgba(27,90,150,.30); color: #fff; box-shadow: inset 2px 0 0 var(--teal); }
+.x-nav .soon { margin-left: auto; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #64788F; border: 1px solid rgba(148,171,196,.22); border-radius: 20px; padding: 1px 6px; }
+
+.x-main { display: flex; flex-direction: column; min-width: 0; }
+.x-top {
+  display: flex; align-items: center; gap: 12px; padding: 11px 22px;
+  border-bottom: 1px solid var(--line); background: var(--card); position: sticky; top: 0; z-index: 20;
+}
+.x-content { padding: 22px; width: 100%; max-width: 1360px; }
+.x-burger { display: none; }
+
+/* §8.1 — identificação do usuário no canto superior direito */
+.x-user { display: flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; padding: 3px 4px; border-radius: 10px; font-family: inherit; color: var(--tx); }
+.x-user:hover { background: var(--bg2); }
+.x-user .who { text-align: right; line-height: 1.25; }
+.x-user .who b { display: block; font-size: 13px; font-weight: 600; }
+.x-user .who span { font-size: 11px; color: var(--tx2); }
+.x-user .av {
+  width: 34px; height: 34px; border-radius: 50%; flex: none; color: #fff; font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; object-fit: cover;
+  background: linear-gradient(140deg, var(--brand), var(--navy));
+}
+
+/* ---------- superfícies ---------- */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--card-shadow); }
+.card-p { padding: 18px; }
+.grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.stat { padding: 15px 16px; }
+.stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--tx2); display: flex; align-items: center; gap: 6px; }
+.stat .v { font-size: 27px; font-weight: 700; letter-spacing: -.03em; margin-top: 6px; line-height: 1.1; }
+.stat .s { font-size: 12px; color: var(--tx3); margin-top: 2px; }
+
+.sec-h { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.sec-h h2 { font-size: 15px; font-weight: 700; }
+.sec-h .sub { font-size: 12px; color: var(--tx2); }
+.pg-h { margin-bottom: 18px; }
+.pg-h h1 { font-size: 22px; font-weight: 700; }
+.pg-h p { font-size: 13px; color: var(--tx2); margin: 3px 0 0; }
+
+/* ---------- tabela ---------- */
+.tbl-wrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+table.tbl th {
+  text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--tx2); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+table.tbl td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+table.tbl tbody tr { cursor: pointer; }
+table.tbl tbody tr:hover { background: var(--bg2); }
+table.tbl tbody tr:last-child td { border-bottom: none; }
+.td-acao { text-align: right; white-space: nowrap; }
+
+/* ---------- chips, badges, barras ---------- */
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line2); background: var(--card); color: var(--tx2); cursor: pointer; font-family: inherit; white-space: nowrap; }
+.chip.on { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); font-weight: 600; }
+.bar { height: 6px; border-radius: 20px; background: var(--bg2); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 20px; }
+
+/* ---------- formulários ---------- */
+.fld { display: block; margin-bottom: 14px; }
+.fld > span { display: block; font-size: 11px; color: var(--tx2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+.inp, select.inp, textarea.inp {
+  width: 100%; background: var(--card); border: 1px solid var(--line2); color: var(--tx);
+  border-radius: 10px; padding: 9px 12px; font-size: 14px; font-family: inherit; height: 40px;
+}
+textarea.inp { height: auto; min-height: 84px; resize: vertical; padding-top: 10px; }
+.inp:focus { border-color: var(--brand); }
+.pw { position: relative; }
+.pw .eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--tx3); font-size: 15px; padding: 5px; line-height: 1; border-radius: 6px; }
+.pw .eye:hover { color: var(--tx); }
+
+/* ---------- faixas de aviso ---------- */
+.faixa { display: flex; align-items: center; gap: 9px; font-size: 12px; padding: 8px 14px; border-radius: 10px; margin-bottom: 14px; line-height: 1.4; }
+.faixa-demo { background: rgba(180,121,14,.10); color: var(--amber); border: 1px solid rgba(180,121,14,.28); font-weight: 600; }
+.faixa-legal { background: var(--bg2); color: var(--tx2); border: 1px solid var(--line); }
+
+/* ---------- kanban ---------- */
+.kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: flex-start; }
+.kb-col { flex: none; width: 232px; background: var(--bg2); border-radius: 12px; padding: 10px; }
+.kb-col h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--tx2); display: flex; justify-content: space-between; margin-bottom: 9px; }
+.kb-card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 11px; margin-bottom: 8px; cursor: pointer; box-shadow: var(--card-shadow); }
+.kb-card:hover { border-color: var(--brand); }
+.kb-card b { font-size: 12.5px; font-weight: 600; display: block; line-height: 1.35; }
+.kb-card .m { font-size: 11px; color: var(--tx3); margin-top: 5px; display: flex; justify-content: space-between; gap: 8px; }
+
+/* ---------- abas ---------- */
+.abas { display: flex; gap: 3px; border-bottom: 1px solid var(--line); overflow-x: auto; margin-bottom: 18px; }
+.aba { padding: 9px 14px; font-size: 13px; color: var(--tx2); border: none; background: none; cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-weight: 500; }
+.aba:hover { color: var(--tx); }
+.aba.on { color: var(--brand); border-bottom-color: var(--brand); font-weight: 600; }
+
+/* ---------- responsivo (mobile-first é padrão do ecossistema) ---------- */
+@media (max-width: 900px) {
+  .x-shell { grid-template-columns: 1fr; }
+  .x-side {
+    position: fixed; inset: 0 auto 0 0; width: 254px; z-index: 60; height: 100vh;
+    transform: translateX(-100%); transition: transform .2s ease;
+  }
+  .x-side.aberta { transform: none; box-shadow: 0 0 60px rgba(0,0,0,.4); }
+  .x-burger { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--line2); background: var(--card); color: var(--tx); font-size: 16px; cursor: pointer; }
+  .x-veu { position: fixed; inset: 0; background: rgba(10,26,47,.5); z-index: 50; }
+  .x-content { padding: 16px 14px 40px; }
+  .x-top { padding: 10px 14px; }
+  .x-user .who { display: none; }
+  .pg-h h1 { font-size: 19px; }
+  /* §12 do briefing em telas estreitas: tabela vira cartão */
+  table.tbl { min-width: 0; }
+  table.tbl thead { display: none; }
+  table.tbl tbody tr { display: block; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; padding: 6px 4px; background: var(--card); }
+  table.tbl td { display: flex; justify-content: space-between; gap: 14px; border: none; padding: 6px 12px; text-align: right; }
+  table.tbl td::before { content: attr(data-l); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; color: var(--tx2); font-weight: 600; text-align: left; flex: none; padding-top: 2px; }
+  .td-acao { justify-content: flex-end; }
+}
+
+/* ---------- impressão de relatório (§26) ---------- */
+@media print {
+  .x-side, .x-top, .nao-imprime { display: none !important; }
+  .x-shell { display: block; }
+  .x-content { padding: 0; max-width: none; }
+  .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+  body { background: #fff; font-size: 12px; }
+}
