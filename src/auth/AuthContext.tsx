@@ -104,9 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: e, password: senha, options: { data: { nome: nome.trim() } },
       })
       if (error) {
-        return error.message.includes('already registered')
-          ? 'Já existe uma conta com este e-mail. Use "Entrar".'
-          : error.message
+        const m = error.message.toLowerCase()
+        // O vizio-core é backend compartilhado e mantém o cadastro público
+        // desativado de propósito. Dizer isso, em vez de repassar o erro cru.
+        if (m.includes('signup') && m.includes('not allowed')) {
+          return 'O cadastro neste ambiente é sob convite. Peça a um administrador '
+            + 'para liberar seu acesso — depois entre com e-mail e senha.'
+        }
+        if (m.includes('already registered')) {
+          return 'Já existe uma conta com este e-mail. Use "Entrar".'
+        }
+        return error.message
       }
       if (!data.session) {
         return 'DEMO: conta criada. Confirme pelo e-mail que enviamos e depois entre.'
