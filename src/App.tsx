@@ -9,6 +9,7 @@ import { NavegacaoProvider, useNavegacao } from './ui/navegacao'
 import { Marca } from './ui/Marca'
 import Login from './screens/Login'
 import Onboarding from './screens/Onboarding'
+import NovaSenha from './screens/NovaSenha'
 import Visao from './screens/Visao'
 import Executivo from './screens/Executivo'
 import Oportunidades from './screens/Oportunidades'
@@ -109,9 +110,11 @@ function Interior() {
 }
 
 function Portao() {
-  const { carregando, usuario } = useAuth()
+  const { carregando, usuario, emRecuperacao } = useAuth()
   if (carregando) return <Carregando />
   if (!usuario) return <Login />
+  // Sessão de recuperação não entra no sistema: define a senha primeiro.
+  if (emRecuperacao) return <NovaSenha />
   return <DadosProvider><Interior /></DadosProvider>
 }
 

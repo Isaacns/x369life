@@ -19,6 +19,9 @@ interface Estado {
   carregando: boolean
   usuario: Usuario | null
   perfil: Perfil | null
+  /** Sessão veio do link de recuperação: só pode definir senha. */
+  emRecuperacao: boolean
+  definirSenha: (senha: string) => Promise<string | null>
   entrar: (email: string, senha: string) => Promise<string | null>
   criarConta: (nome: string, email: string, senha: string) => Promise<string | null>
   recuperar: (email: string) => Promise<string | null>
@@ -36,6 +39,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [carregando, setCarregando] = useState(true)
   const [usuario, setUsuario] = useState<Usuario | null>(null)
+  const [emRecuperacao, setEmRecuperacao] = useState(false)
 
   useEffect(() => {
     if (MODO_DEMO) {
@@ -53,7 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (data.session?.user?.user_metadata?.nome as string | undefined) ?? null)
       setCarregando(false)
     })
-    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = sb.auth.onAuthStateChange((evento, s) => {
+      // O link do e-mail chega como PASSWORD_RECOVERY: a sessão é válida,
+      // mas a única coisa permitida é trocar a senha.
+      if (evento === 'PASSWORD_RECOVERY') setEmRecuperacao(true)
+      if (evento === 'SIGNED_OUT') setEmRecuperacao(false)
       aplicarSessao(s?.user?.email ?? null, s?.user?.id ?? null,
         (s?.user?.user_metadata?.nome as string | undefined) ?? null)
       setCarregando(false)
@@ -69,8 +77,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const valor: Estado = {
-    carregando, usuario,
+    carregando, usuario, emRecuperacao,
     perfil: (usuario?.perfil as Perfil | undefined) ?? null,
+
+    definirSenha: async (senha) => {
+      if (senha.length < 8) return 'A senha precisa de ao menos 8 caracteres.'
+      if (MODO_DEMO) return 'DEMO: troca de senha exige o backend configurado.'
+      if (!sb) return 'Backend não configurado.'
+      const { error } = await sb.auth.updateUser({ password: senha })
+      if (error) {
+        return error.message.toLowerCase().includes('same')
+          ? 'A senha nova precisa ser diferente da anterior.'
+          : error.message
+      }
+      setEmRecuperacao(false)
+      return null
+    },
 
     entrar: async (email, senha) => {
       const e = email.trim().toLowerCase()
@@ -131,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (!sb) return 'Backend não configurado.'
       const { error } = await sb.auth.resetPasswordForEmail(e, {
-        redirectTo: window.location.origin + '/#/nova-senha',
+        redirectTo: window.location.origin + '/',
       })
       return error ? error.message : null
     },
