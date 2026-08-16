@@ -130,15 +130,16 @@ export default function Usuarios() {
           usuario={editando}
           souEu={editando?.id === eu?.id}
           onFechar={() => { setEditando(null); setNovo(false) }}
-          onSalvar={(u) => {
-            salvarUsuario(u)
+          onSalvar={async (u) => {
+            const msg = await salvarUsuario(u)
+            if (msg) { toast(msg, true); return }
             setEditando(null); setNovo(false)
-            toast(editando ? 'Usuário atualizado.' : 'Usuário cadastrado.')
+            toast(editando ? 'Acesso atualizado.' : 'Acesso concedido.')
           }}
-          onRemover={editando ? () => {
-            removerUsuario(editando.id)
+          onRemover={editando ? async () => {
+            await removerUsuario(editando.id)
             setEditando(null)
-            toast('Usuário removido do acesso.')
+            toast('Acesso desativado.')
           } : undefined}
         />
       )}
@@ -148,7 +149,9 @@ export default function Usuarios() {
 
 function FichaUsuario({ usuario, souEu, onFechar, onSalvar, onRemover }: {
   usuario: Usuario | null; souEu?: boolean
-  onFechar: () => void; onSalvar: (u: Usuario) => void; onRemover?: () => void
+  onFechar: () => void
+  onSalvar: (u: Usuario) => void | Promise<void>
+  onRemover?: () => void | Promise<void>
 }) {
   const [nome, setNome] = useState(usuario?.nome ?? '')
   const [email, setEmail] = useState(usuario?.email ?? '')

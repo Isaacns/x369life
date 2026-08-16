@@ -1,18 +1,23 @@
 import { useMemo, useState } from 'react'
 import { MODO_DEMO } from '../app.config'
+import { Erro } from '../ui/kit'
 import { comPesos, useDados } from '../lib/dados'
 import { paisPorId, PAISES } from '../lib/demo'
 import { avaliar } from '../lib/scoring'
 import { ETAPAS, type Oportunidade } from '../lib/tipos'
 import { corAderencia, corPrazo, corRisco, moeda, data as fData, rotuloPrazo } from '../lib/formato'
-import { Badge, Barra, FaixaDemo, Vazio } from '../ui/kit'
+import { Badge, Barra, Carregando, FaixaDemo, Vazio } from '../ui/kit'
 import { useNavegacao } from '../ui/navegacao'
 import DetalheOportunidade from './Oportunidade'
+import NovaOportunidade from './NovaOportunidade'
 
 type Vista = 'tabela' | 'cards'
 
 export default function Oportunidades() {
-  const { oportunidades, perfilOrg, pesos } = useDados()
+  const { oportunidades, perfilOrg, pesos, carregando, erro, recarregar,
+          semearDemonstrativos } = useDados()
+  const [cadastrando, setCadastrando] = useState(false)
+  const [semeando, setSemeando] = useState(false)
   const { oportunidadeId, abrirOportunidade } = useNavegacao()
 
   const [vista, setVista] = useState<Vista>('tabela')
@@ -44,10 +49,15 @@ export default function Oportunidades() {
     <>
       {MODO_DEMO && <FaixaDemo />}
 
-      <div className="pg-h">
-        <h1>Central de oportunidades</h1>
-        <p>{linhas.length} de {oportunidades.length} oportunidades nos filtros atuais.</p>
+      <div className="pg-h" style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <h1>Central de oportunidades</h1>
+          <p>{linhas.length} de {oportunidades.length} oportunidades nos filtros atuais.</p>
+        </div>
+        <button className="b nao-imprime" onClick={() => setCadastrando(true)}>+ Cadastrar edital</button>
       </div>
+
+      {erro && <div style={{ marginBottom: 14 }}><Erro texto={erro} onTentar={() => void recarregar()} /></div>}
 
       <div className="card card-p nao-imprime" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -80,7 +90,18 @@ export default function Oportunidades() {
         </div>
       </div>
 
-      {linhas.length === 0 ? (
+      {carregando ? <Carregando /> : oportunidades.length === 0 ? (
+        <Vazio ico="◎" titulo="Nenhum edital cadastrado ainda"
+          texto="Cadastre o primeiro edital à mão, ou carregue o conjunto demonstrativo para ver o sistema com carteira cheia — ele fica marcado como demonstrativo e pode ser removido depois.">
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="b" onClick={() => setCadastrando(true)}>Cadastrar edital</button>
+            <button className="b-ghost" disabled={semeando} onClick={() => {
+              setSemeando(true)
+              void semearDemonstrativos().finally(() => setSemeando(false))
+            }}>{semeando ? 'Carregando…' : 'Carregar conjunto demonstrativo'}</button>
+          </div>
+        </Vazio>
+      ) : linhas.length === 0 ? (
         <Vazio titulo="Nada encontrado" texto="Nenhuma oportunidade atende a esta combinação de filtros. Tente ampliar o critério de aderência ou incluir as encerradas." />
       ) : vista === 'tabela' ? (
         <div className="card">
@@ -128,6 +149,8 @@ export default function Oportunidades() {
           {linhas.map(({ o, a }) => <Cartao key={o.id} o={o} a={a} onAbrir={() => abrirOportunidade(o.id)} />)}
         </div>
       )}
+
+      {cadastrando && <NovaOportunidade onFechar={() => setCadastrando(false)} />}
     </>
   )
 }
