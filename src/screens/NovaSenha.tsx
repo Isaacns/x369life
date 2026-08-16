@@ -29,12 +29,12 @@ export default function NovaSenha() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20 }}>
+    <div className="x-acesso" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 416 }}>
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="fileira-luz" style={{ borderRadius: 0, opacity: 1 }} />
           <div style={{ padding: '30px 28px 32px' }}>
-            <Marca tamanho={36} />
+            <Marca tamanho={36} respira anel />
 
             {pronto ? (
               <>

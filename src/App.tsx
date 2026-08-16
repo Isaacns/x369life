@@ -2,14 +2,16 @@ import { useEffect, useState, type JSX } from 'react'
 import { APP, MODO_DEMO, NAV, PERFIS, type NavId, type Perfil } from './app.config'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { DadosProvider, useDados } from './lib/dados'
-import { iniciais } from './lib/formato'
 import { Carregando, ToastHost } from './ui/kit'
 import { TemaProvider, useTema } from './ui/tema'
 import { NavegacaoProvider, useNavegacao } from './ui/navegacao'
-import { Marca } from './ui/Marca'
+import { FundoVivo, Marca } from './ui/Marca'
+import { Retrato } from './ui/Retrato'
 import Login from './screens/Login'
 import Onboarding from './screens/Onboarding'
 import NovaSenha from './screens/NovaSenha'
+import BoasVindas, { jaViuBoasVindas } from './screens/BoasVindas'
+import MeuPerfil from './screens/MeuPerfil'
 import Visao from './screens/Visao'
 import Executivo from './screens/Executivo'
 import Oportunidades from './screens/Oportunidades'
@@ -32,6 +34,7 @@ function Shell() {
   const { tema, alternar } = useTema()
   const { view, ir } = useNavegacao()
   const [menuAberto, setMenuAberto] = useState(false)
+  const [ficha, setFicha] = useState(false)
 
   const item = NAV.find((n) => n.id === view)
   const Tela = TELAS[view] ?? (() => <EmBreve titulo={item?.label ?? ''} />)
@@ -46,7 +49,7 @@ function Shell() {
 
       <aside className={'x-side nao-imprime' + (menuAberto ? ' aberta' : '')}>
         <div style={{ padding: '0 10px 6px' }}>
-          <Marca tamanho={32} sobreEscuro />
+          <Marca tamanho={32} sobreEscuro respira />
         </div>
 
         <nav>
@@ -86,15 +89,19 @@ function Shell() {
             {tema === 'claro' ? '◐' : '◑'}
           </button>
 
-          {/* §8.1 dos padrões VIZIO — quem está logado, sempre no topo à direita */}
-          <button className="x-user" onClick={() => navegar('usuarios')} title="Usuários e perfis">
+          {/* §8.1 dos padrões VIZIO — quem está logado, ver/editar e sair,
+              sempre no topo à direita. */}
+          <button className="x-user" onClick={() => setFicha(true)} title="Ver e editar meu perfil">
             <span className="who">
               <b>{usuario?.nome}</b>
               <span>{PERFIS[perfil]?.label ?? perfil}</span>
             </span>
-            <span className="av">{iniciais(usuario?.nome ?? '')}</span>
+            <Retrato nome={usuario?.nome ?? ''} url={usuario?.fotoUrl} />
           </button>
+          <button className="b-sm" onClick={() => void sair()} title="Sair" aria-label="Sair">⏻</button>
         </header>
+
+        {ficha && <MeuPerfil onFechar={() => setFicha(false)} />}
 
         <main className="x-content"><Tela /></main>
       </div>
@@ -104,8 +111,12 @@ function Shell() {
 
 function Interior() {
   const { carregando, precisaOnboarding, recarregarOrg } = useDados()
+  const { usuario } = useAuth()
+  const [apresentar, setApresentar] = useState(() => !jaViuBoasVindas(usuario?.id))
   if (carregando) return <Carregando />
   if (precisaOnboarding) return <Onboarding onPronto={() => void recarregarOrg()} />
+  // Apresentação do sistema: só no primeiro acesso de cada pessoa.
+  if (apresentar) return <BoasVindas onConcluir={() => setApresentar(false)} />
   return <NavegacaoProvider><Shell /></NavegacaoProvider>
 }
 
@@ -124,6 +135,7 @@ export default function App() {
   }, [])
   return (
     <TemaProvider>
+      <FundoVivo />
       <ToastHost><AuthProvider><Portao /></AuthProvider></ToastHost>
     </TemaProvider>
   )

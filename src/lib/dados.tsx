@@ -5,7 +5,7 @@
 
    As telas não sabem qual dos dois está ativo — falam sempre em `Oportunidade`.
    ============================================================ */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MODO_DEMO } from '../app.config'
 import { sb } from './supabase'
 import { OPORTUNIDADES_DEMO, PERFIL_DEMO, USUARIOS_DEMO } from './demo'
@@ -64,7 +64,13 @@ const persistir = (patch: Partial<Persistido>) => {
 const msg = (e: unknown) => (e as { message?: string })?.message ?? 'Falha ao falar com o servidor.'
 
 export function DadosProvider({ children }: { children: ReactNode }) {
-  const { usuario } = useAuth()
+  const { usuario, atualizarUsuario } = useAuth()
+  // carregarOrg roda uma vez e não deve reagir a cada render do usuário;
+  // as refs dão acesso ao valor corrente sem virar dependência.
+  const usuarioRef = useRef(usuario)
+  const atualizarUsuarioRef = useRef(atualizarUsuario)
+  usuarioRef.current = usuario
+  atualizarUsuarioRef.current = atualizarUsuario
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
   const [oportunidades, setOportunidades] = useState<Oportunidade[]>([])
@@ -78,16 +84,35 @@ export function DadosProvider({ children }: { children: ReactNode }) {
   /* ---------------- organização ---------------- */
   const carregarOrg = useCallback(async () => {
     if (MODO_DEMO || !sb) { setSemOrg(false); return null }
-    const { data, error } = await sb.schema('x369life')
+    const x = sb.schema('x369life')
+    const { data, error } = await x
       .from('memberships')
-      .select('org_id, organizations(id, nome, pais_origem)')
+      .select('org_id, role, organizations(id, nome, pais_origem)')
       .eq('ativo', true).limit(1)
     if (error) { setErro(msg(error)); return null }
     const linha = data?.[0] as unknown as
-      { org_id: string; organizations: { nome: string } | { nome: string }[] | null } | undefined
+      { org_id: string; role: string; organizations: { nome: string } | { nome: string }[] | null } | undefined
     if (!linha) { setOrgId(null); setOrgNome(null); setSemOrg(true); return null }
     const org = Array.isArray(linha.organizations) ? linha.organizations[0] : linha.organizations
     setOrgId(linha.org_id); setOrgNome(org?.nome ?? null); setSemOrg(false)
+
+    // O papel real vem do RBAC — a sessão sozinha não sabe qual é. Quem é
+    // administrador de plataforma enxerga como owner em qualquer organização,
+    // que é exatamente o que a policy no banco já concede.
+    // A policy pa_sel só devolve linha para quem é admin de plataforma:
+    // para os demais a consulta volta vazia, sem erro.
+    const [{ data: pa }, { data: perfilLinha }] = await Promise.all([
+      x.from('platform_admins').select('user_id').limit(1),
+      x.from('profiles').select('nome, foto_url, tratamento')
+        .eq('id', usuarioRef.current?.id ?? '').maybeSingle(),
+    ])
+    const papel = (pa && pa.length > 0) ? 'owner' : linha.role
+    atualizarUsuarioRef.current?.({
+      perfil: papel,
+      ...(perfilLinha?.nome ? { nome: perfilLinha.nome as string } : {}),
+      fotoUrl: (perfilLinha?.foto_url as string | null) ?? undefined,
+      tratamento: (perfilLinha?.tratamento as string | undefined) ?? 'neutro',
+    })
     return linha.org_id
   }, [])
 
@@ -107,7 +132,7 @@ export function DadosProvider({ children }: { children: ReactNode }) {
       x.from('opportunities').select(SELECT_OPORTUNIDADE)
         .eq('org_id', org).is('excluido_em', null)
         .order('prazo', { ascending: true, nullsFirst: false }),
-      x.from('memberships').select('role, ativo, profiles(id, nome, email)').eq('org_id', org),
+      x.from('memberships').select('role, ativo, profiles(id, nome, email, foto_url)').eq('org_id', org),
       x.from('organization_profiles').select('*').eq('org_id', org).maybeSingle(),
     ])
 
@@ -117,10 +142,11 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     if (!membros.error) {
       setUsuarios((membros.data ?? []).map((m) => {
         const p = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as
-          { id: string; nome: string | null; email: string | null } | null
+          { id: string; nome: string | null; email: string | null; foto_url: string | null } | null
         return {
           id: p?.id ?? '', nome: p?.nome ?? '—', email: p?.email ?? '—',
           perfil: m.role as string, ativo: m.ativo as boolean,
+          fotoUrl: p?.foto_url ?? undefined,
         }
       }).filter((u) => u.id))
     }

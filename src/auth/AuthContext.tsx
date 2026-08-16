@@ -71,8 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function aplicarSessao(email: string | null, id: string | null, nome: string | null) {
     if (!email || !id) { setUsuario(null); return }
-    // O papel real vem do RBAC no banco (memberships). Sessão sem cadastro
-    // correspondente recebe o perfil MÍNIMO — §13.1 dos padrões VIZIO.
+    // O papel real vem do RBAC no banco (memberships / platform_admins) e é
+    // empurrado por `dados.tsx` assim que a organização carrega. Até lá vale o
+    // perfil MÍNIMO — §13.1 dos padrões VIZIO: nunca supor privilégio.
     setUsuario({ id, nome: nome ?? email.split('@')[0], email, perfil: 'visualizador', ativo: true })
   }
 

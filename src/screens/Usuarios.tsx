@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { MODO_DEMO, PERFIS, PERFIS_LISTA, podeAdministrar, type Perfil } from '../app.config'
 import { useAuth } from '../auth/AuthContext'
 import { useDados } from '../lib/dados'
-import { dataHora, iniciais } from '../lib/formato'
+import { dataHora } from '../lib/formato'
+import { Retrato } from '../ui/Retrato'
 import type { Usuario } from '../lib/tipos'
 import { Badge, Campo, CampoSenha, FaixaDemo, Modal, Rodape, useToast, Vazio } from '../ui/kit'
 
@@ -61,9 +62,7 @@ export default function Usuarios() {
                 {usuarios.map((u) => (
                   <tr key={u.id} onClick={() => admin && setEditando(u)} style={{ cursor: admin ? 'pointer' : 'default' }}>
                     <td data-l="">
-                      <span className="av" style={{ width: 32, height: 32, display: 'inline-flex', borderRadius: '50%', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11.5, fontWeight: 700, background: 'linear-gradient(140deg, var(--brand), var(--navy))' }}>
-                        {iniciais(u.nome)}
-                      </span>
+                      <Retrato nome={u.nome} url={u.fotoUrl} tamanho={32} />
                     </td>
                     <td data-l="Nome">
                       <b style={{ fontWeight: 600 }}>{u.nome}</b>

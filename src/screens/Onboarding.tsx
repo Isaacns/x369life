@@ -29,10 +29,10 @@ export default function Onboarding({ onPronto }: { onPronto: () => void }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20 }}>
+    <div className="x-acesso" style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 440 }}>
         <div className="card" style={{ padding: '32px 28px' }}>
-          <Marca tamanho={34} />
+          <Marca tamanho={34} respira anel />
           <h1 style={{ fontSize: 22, fontWeight: 700, margin: '20px 0 5px' }}>
             Vamos cadastrar sua organização
           </h1>

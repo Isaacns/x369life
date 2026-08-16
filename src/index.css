@@ -26,8 +26,12 @@
   --navy: #0A1A2F; --navy2: #12293F;
   --brand: #1B5A96; --brand-deep: #14446F; --brand-soft: #E8F0F8;
   --teal: #0E9384; --amber: #B4790E; --danger: #B42318; --info: #2E6FB8;
-  --card-shadow: 0 1px 2px rgba(14,27,43,.04), 0 4px 14px rgba(14,27,43,.05);
+  --card-shadow: 0 1px 2px rgba(14,27,43,.04), 0 8px 26px rgba(14,27,43,.07);
   --radius: 14px;
+  /* Liquid Glass — padrão Ateliê Manager, na paleta daqui */
+  --vidro: rgba(255,255,255,.72);
+  --vidro-borda: rgba(255,255,255,.62);
+  --vidro-forte: rgba(255,255,255,.84);
   --amber-lit: #E0A93C;
   --sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: "Bricolage Grotesque", "Public Sans", ui-sans-serif, system-ui, sans-serif;
@@ -39,7 +43,10 @@
   --tx: #E6EDF5;  --tx2: #97A8BC;  --tx3: #6B7D93;
   --brand: #4A90D9; --brand-deep: #2E6FB8; --brand-soft: rgba(74,144,217,.14);
   --teal: #2CB5A0; --amber: #D9A441; --danger: #E5705F;
-  --card-shadow: 0 1px 2px rgba(0,0,0,.32), 0 6px 22px rgba(0,0,0,.34);
+  --card-shadow: 0 1px 2px rgba(0,0,0,.32), 0 10px 30px rgba(0,0,0,.38);
+  --vidro: rgba(15,33,53,.66);
+  --vidro-borda: rgba(148,171,196,.16);
+  --vidro-forte: rgba(15,33,53,.86);
 }
 
 * { box-sizing: border-box; }
@@ -102,8 +109,11 @@ h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
 /* ---------- shell ---------- */
 .x-shell { display: grid; grid-template-columns: 244px 1fr; min-height: 100vh; }
 .x-side {
-  background: var(--navy); color: #B7C6D8; padding: 18px 12px 14px;
+  background: color-mix(in srgb, var(--navy) 88%, transparent);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  color: #B7C6D8; padding: 18px 12px 14px;
   display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  border-right: 1px solid rgba(255,255,255,.06);
 }
 .x-side .x-logo b { color: #fff; }
 .x-side .x-logo b i { color: #7E93AB; }
@@ -121,7 +131,9 @@ h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
 .x-main { display: flex; flex-direction: column; min-width: 0; }
 .x-top {
   display: flex; align-items: center; gap: 12px; padding: 11px 22px;
-  border-bottom: 1px solid var(--line); background: var(--card); position: sticky; top: 0; z-index: 20;
+  border-bottom: 1px solid var(--vidro-borda); position: sticky; top: 0; z-index: 20;
+  background: var(--vidro-forte);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
 }
 .x-content { padding: 22px; width: 100%; max-width: 1360px; }
 .x-burger { display: none; }
@@ -132,16 +144,26 @@ h1, h2, h3 { margin: 0; letter-spacing: -.015em; }
 .x-user .who { text-align: right; line-height: 1.25; }
 .x-user .who b { display: block; font-size: 13px; font-weight: 600; }
 .x-user .who span { font-size: 11px; color: var(--tx2); }
-.x-user .av {
+/* Retrato: no topo, na ficha do perfil e na lista de usuários — mesma peça. */
+.av {
   width: 34px; height: 34px; border-radius: 50%; flex: none; color: #fff; font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center; object-fit: cover;
   background: linear-gradient(140deg, var(--brand), var(--navy));
 }
 
 /* ---------- superfícies ---------- */
-.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--card-shadow); }
+.card {
+  background: var(--vidro); border: 1px solid var(--vidro-borda);
+  border-radius: var(--radius); box-shadow: var(--card-shadow);
+  backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+}
+/* Tabela e formulário voltam ao opaco: vidro atrás de dado denso
+   custa legibilidade, e este é um produto de leitura de números. */
+.card .tbl-wrap, .inp, select.inp, textarea.inp { backdrop-filter: none; }
 .card-p { padding: 18px; }
 .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+/* Dois campos lado a lado; empilham sozinhos quando não cabem. */
+.grade-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0 14px; }
 .stat { padding: 15px 16px; }
 .stat .k { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--tx2); display: flex; align-items: center; gap: 6px; }
 .stat .v { font-size: 27px; font-weight: 700; letter-spacing: -.03em; margin-top: 6px; line-height: 1.1; }
@@ -238,4 +260,67 @@ textarea.inp { height: auto; min-height: 84px; resize: vertical; padding-top: 10
   .x-content { padding: 0; max-width: none; }
   .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
   body { background: #fff; font-size: 12px; }
+}
+
+
+/* ============================================================
+   Movimento Vivo (§3 dos padrões) — ORBI
+   Camada de fundo com orbes lentos. Herdada do Ateliê Manager,
+   com a paleta daqui: azul profundo e o âmbar da marca.
+   ============================================================ */
+.vivo { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.vivo .orb { position: absolute; border-radius: 50%; filter: blur(64px); }
+.vivo .orb.a {
+  width: 540px; height: 540px; left: -160px; top: -120px;
+  background: radial-gradient(circle, rgba(27,90,150,.34), transparent 66%);
+}
+.vivo .orb.b {
+  width: 460px; height: 460px; right: -140px; top: 24%;
+  background: radial-gradient(circle, rgba(224,169,60,.20), transparent 68%);
+}
+.vivo .orb.c {
+  width: 620px; height: 620px; left: 24%; bottom: -260px;
+  background: radial-gradient(circle, rgba(14,147,132,.22), transparent 68%);
+}
+:root[data-theme="dark"] .vivo .orb.a { background: radial-gradient(circle, rgba(74,144,217,.30), transparent 66%); }
+:root[data-theme="dark"] .vivo .orb.b { background: radial-gradient(circle, rgba(217,164,65,.18), transparent 68%); }
+:root[data-theme="dark"] .vivo .orb.c { background: radial-gradient(circle, rgba(44,181,160,.20), transparent 68%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .vivo .orb.a { animation: orbita 9s ease-in-out infinite; }
+  .vivo .orb.b { animation: orbita 9s ease-in-out infinite -3s; }
+  .vivo .orb.c { animation: orbita 9s ease-in-out infinite -6s; }
+  @keyframes orbita {
+    0%, 100% { transform: scale(1) translate(0, 0); opacity: .62; }
+    50%      { transform: scale(1.16) translate(16px, -22px); opacity: .86; }
+  }
+}
+.x-shell, .x-acesso { position: relative; z-index: 1; }
+
+/* ---------- marca respirável ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .respira { animation: respiro 4.5s ease-in-out infinite; transform-origin: center; }
+  @keyframes respiro {
+    0%, 100% { transform: scale(1);     opacity: 1;   }
+    50%      { transform: scale(1.045); opacity: .92; }
+  }
+}
+
+/* ---------- anel da identidade ao redor da marca ---------- */
+.anel {
+  display: inline-grid; place-items: center; border-radius: 22%;
+  padding: 3px;
+  background: conic-gradient(from 210deg,
+    var(--brand), var(--amber-lit) 26%, var(--brand) 54%, var(--teal) 78%, var(--brand));
+  box-shadow: 0 6px 20px rgba(27,90,150,.30);
+}
+.anel > svg { border-radius: 19%; display: block; }
+.anel.redondo { border-radius: 50%; }
+.anel.redondo > svg { border-radius: 50%; }
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes passoEntra {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
 }

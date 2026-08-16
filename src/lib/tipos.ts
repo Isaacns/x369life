@@ -159,6 +159,8 @@ export interface Usuario {
   ativo: boolean
   ultimoAcesso?: string
   fotoUrl?: string
+  /** Flexão de gênero escolhida pela pessoa. Só afeta texto. */
+  tratamento?: string
 }
 
 export interface PerfilOrganizacao {
