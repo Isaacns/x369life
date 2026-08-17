@@ -9,9 +9,11 @@ export function moduloNaoProvisionado(e: unknown): boolean {
     || /does not exist|schema cache/i.test(err?.message ?? '')
 }
 
+export const TITULO_NAO_PROVISIONADO = 'Módulo ainda não liberado'
 export const AVISO_NAO_PROVISIONADO =
-  'Este módulo ainda não foi provisionado no banco. As tabelas dele estão escritas '
-  + 'em supabase/migrations e precisam ser aplicadas — nada foi perdido, só não existe ainda.'
+  'Este módulo já está no sistema, mas o espaço dele no banco de dados ainda não foi criado. '
+  + 'Nada foi perdido e nada deu errado — falta um passo de instalação, que é feito pela '
+  + 'administração. Assim que for concluído, esta tela funciona sem precisar de nova versão.'
 
 
 /* ============================================================

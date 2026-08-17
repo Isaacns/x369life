@@ -11,6 +11,7 @@ import {
 import { corAderencia, corPrazo, corRisco, moeda, data as fData, pct, rotuloPrazo } from '../lib/formato'
 import { Abas, Badge, Barra, Campo, FaixaDemo, FaixaLegal, Modal, Rodape, useToast, Vazio } from '../ui/kit'
 import { useNavegacao } from '../ui/navegacao'
+import { useAcesso } from '../lib/acesso'
 import { useAuth } from '../auth/AuthContext'
 
 type AbaId = 'resumo' | 'aderencia' | 'documentos' | 'prazos' | 'riscos' | 'viabilidade' | 'swot' | 'pestel' | 'fontes' | 'decisao'
@@ -37,6 +38,7 @@ export default function DetalheOportunidade({ id }: { id: string }) {
   const { oportunidades, perfilOrg, pesos, moverEtapa, registrarDecisao } = useDados()
   const { fecharOportunidade } = useNavegacao()
   const { usuario } = useAuth()
+  const { editar: podeDecidir } = useAcesso('pipeline')
   const toast = useToast()
   const [aba, setAba] = useState<AbaId>('resumo')
   const [modalDecisao, setModalDecisao] = useState(false)
@@ -95,11 +97,15 @@ export default function DetalheOportunidade({ id }: { id: string }) {
 
         <div className="nao-imprime" style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <select className="inp" value={o.etapa} style={{ width: 'auto', height: 36, fontSize: 13 }}
+            disabled={!podeDecidir}
+            title={podeDecidir ? undefined : 'Seu acesso ao Pipeline é somente leitura.'}
             onChange={(e) => { moverEtapa(o.id, e.target.value as EtapaPipeline); toast('Etapa atualizada no pipeline.') }}
             aria-label="Etapa do pipeline">
             {ETAPAS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
           </select>
-          <button className="b" onClick={() => setModalDecisao(true)}>Registrar decisão</button>
+          {podeDecidir && (
+            <button className="b" onClick={() => setModalDecisao(true)}>Registrar decisão</button>
+          )}
           <button className="b-ghost" onClick={() => window.print()}>Imprimir / PDF</button>
         </div>
       </div>

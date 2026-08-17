@@ -67,7 +67,8 @@ export function calcularAderencia(comps: ComponenteAderencia[]): ResultadoAderen
 /* ---------- risco (§17) ---------- */
 
 export interface ResultadoRisco {
-  score: number
+  /** null = nenhum risco avaliado ainda. Não é o mesmo que risco zero. */
+  score: number | null
   nivel: NivelRisco
   porCategoria: { categoria: string; score: number; itens: ItemRisco[] }[]
   criticos: ItemRisco[]
@@ -83,8 +84,12 @@ export function nivelDeRisco(score: number): NivelRisco {
 }
 
 export function calcularRisco(itens: ItemRisco[]): ResultadoRisco {
+  // Sem risco REGISTRADO não é sem risco EXISTENTE. Devolver 0/'baixo' aqui
+  // fazia a ausência de avaliação virar selo verde na tela e bônus na
+  // probabilidade — o oposto da regra que abre este arquivo. `score: null`
+  // é a mesma convenção já usada na aderência: ausência declarada.
   if (itens.length === 0) {
-    return { score: 0, nivel: 'baixo', porCategoria: [], criticos: [] }
+    return { score: null, nivel: 'nao_avaliado', porCategoria: [], criticos: [] }
   }
   const cats = [...new Set(itens.map((i) => i.categoria))]
   const porCategoria = cats.map((categoria) => {
@@ -94,7 +99,11 @@ export function calcularRisco(itens: ItemRisco[]): ResultadoRisco {
     const pior = Math.max(...doGrupo.map(criticidade))
     return { categoria, score: Math.round(((pior - 1) / 24) * 100), itens: doGrupo }
   })
-  const score = Math.round(porCategoria.reduce((s, c) => s + c.score, 0) / porCategoria.length)
+  // O pior risco manda, entre categorias também. Fazer média aqui só empurrava
+  // a diluição um nível acima: registrar dois riscos triviais ao lado de uma
+  // inabilitação certa derrubava o score de 100 para 33 e virava "Participar".
+  // Registrar informação nunca pode deixar o sistema menos cauteloso.
+  const score = Math.max(...porCategoria.map((c) => c.score))
   return {
     score,
     nivel: nivelDeRisco(score),
@@ -136,12 +145,14 @@ const limitar = (v: number, min: number, max: number) => Math.max(min, Math.min(
 export interface EntradaProbabilidade {
   aderencia: ResultadoAderencia
   risco: ResultadoRisco
-  diasRestantes: number
+  /** null = edital sem prazo informado. */
+  diasRestantes: number | null
   concorrentesEstimados: number | null
   historicoPropostas: number
   historicoVitorias: number
   exigeParceiroLocal: boolean
-  temParceiroLocal: boolean
+  /** null = critério nunca avaliado. Não é o mesmo que não atende. */
+  temParceiroLocal: boolean | null
 }
 
 export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabilidade {
@@ -157,7 +168,7 @@ export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabi
   fatores.push({
     label: 'Concorrência',
     detalhe: nConhecido ? `${n} concorrentes estimados` : 'não informada — assumidos 5',
-    contribuicao: 0,
+    contribuicao: 0,   // o efeito da concorrência é a própria base — ver `base`
     conhecido: nConhecido,
   })
 
@@ -174,13 +185,17 @@ export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabi
 
   /* 3. Risco: penaliza, com metade do peso da aderência — risco alto
         derruba execução e habilitação, mas não decide sozinho.           */
-  const cR = -((e.risco.score - 30) / 40) * 0.8
+  // Risco não avaliado não empurra a probabilidade para lado nenhum. Antes,
+  // score 0 rendia +0,6 de contribuição — 13 pontos percentuais de vitória
+  // ganhos por não ter avaliado nada.
+  const riscoAvaliado = e.risco.score !== null
+  const cR = e.risco.score !== null ? -((e.risco.score - 30) / 40) * 0.8 : 0
   z += cR
   fatores.push({
     label: 'Risco da operação',
-    detalhe: `${e.risco.score}/100 · ${e.risco.nivel}`,
+    detalhe: riscoAvaliado ? `${e.risco.score}/100 · ${e.risco.nivel}` : 'ainda não avaliado',
     contribuicao: cR,
-    conhecido: e.risco.porCategoria.length > 0,
+    conhecido: riscoAvaliado,
   })
 
   /* 4. Histórico da própria empresa — ajuste bayesiano contra uma
@@ -204,28 +219,36 @@ export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabi
 
   /* 5. Prazo: abaixo de 20 dias a preparação sofre; abaixo de 7 é grave. */
   let cP = 0
-  if (e.diasRestantes <= 0) cP = -2.2
-  else if (e.diasRestantes < 7) cP = -1.0
-  else if (e.diasRestantes < 20) cP = -0.4
+  const d = e.diasRestantes
+  if (d !== null) {
+    if (d <= 0) cP = -2.2
+    else if (d < 7) cP = -1.0
+    else if (d < 20) cP = -0.4
+  }
   z += cP
   fatores.push({
     label: 'Prazo disponível',
-    detalhe: e.diasRestantes <= 0 ? 'prazo encerrado' : `${e.diasRestantes} dias até a entrega`,
+    detalhe: d === null ? 'prazo não informado'
+      : d <= 0 ? 'prazo encerrado' : `${d} dias até a entrega`,
     contribuicao: cP,
-    conhecido: true,
+    conhecido: d !== null,
   })
 
   /* 6. Exigência de parceiro local não atendida é quase eliminatória.    */
+  // `temParceiroLocal` é null quando o critério nunca foi avaliado. Antes,
+  // null virava false: -1,2 de penalidade e a tela AFIRMANDO "exigido e NÃO
+  // atendido" sobre algo que ninguém tinha olhado.
   let cL = 0
-  if (e.exigeParceiroLocal && !e.temParceiroLocal) cL = -1.2
-  else if (e.exigeParceiroLocal && e.temParceiroLocal) cL = 0.35
+  const localSabido = e.temParceiroLocal !== null
+  if (e.exigeParceiroLocal && localSabido) cL = e.temParceiroLocal ? 0.35 : -1.2
   z += cL
   fatores.push({
     label: 'Parceiro local',
     detalhe: !e.exigeParceiroLocal ? 'não exigido'
-      : e.temParceiroLocal ? 'exigido e atendido' : 'exigido e NÃO atendido',
+      : !localSabido ? 'exigido — atendimento não avaliado'
+        : e.temParceiroLocal ? 'exigido e atendido' : 'exigido e NÃO atendido',
     contribuicao: cL,
-    conhecido: true,
+    conhecido: !e.exigeParceiroLocal || localSabido,
   })
 
   const p = limitar(sigmoide(z), 0.01, 0.95)
@@ -289,7 +312,7 @@ export interface ResultadoRecomendacao {
 
 export function recomendar(
   ad: ResultadoAderencia, rk: ResultadoRisco, prob: ResultadoProbabilidade,
-  o: Pick<Oportunidade, 'exigeParceiroLocal'>, diasRestantes: number,
+  o: Pick<Oportunidade, 'exigeParceiroLocal'>, diasRestantes: number | null,
 ): ResultadoRecomendacao {
   const motivos: string[] = []
   const juridica = ad.lacunas.find((c) => c.id === 'juridica')
@@ -299,7 +322,7 @@ export function recomendar(
     motivos.push('Elegibilidade jurídica reprovada — a empresa não atende à condição de participação.')
     return { decisao: 'nao_participar', titulo: 'Não participar', motivos, confianca: prob.confianca }
   }
-  if (diasRestantes <= 0) {
+  if (diasRestantes !== null && diasRestantes <= 0) {
     motivos.push('O prazo de entrega da proposta já se encerrou.')
     return { decisao: 'nao_participar', titulo: 'Não participar', motivos, confianca: prob.confianca }
   }
@@ -313,14 +336,19 @@ export function recomendar(
     motivos.push('Recomenda-se esclarecimento formal antes de comprometer proposta.')
     return { decisao: 'esclarecimento', titulo: 'Solicitar esclarecimento', motivos, confianca: prob.confianca }
   }
-  if (ad.nota >= 70 && rk.score < 50) {
+  if (rk.score === null && ad.nota >= 70) {
+    motivos.push(`Aderência ${ad.nota}/100 com ${ad.confianca}% de confiança.`)
+    motivos.push('Nenhum risco foi avaliado ainda — sem isso não há como recomendar participação.')
+    return { decisao: 'aguardar', titulo: 'Aguardar — risco não avaliado', motivos, confianca: prob.confianca }
+  }
+  if (ad.nota >= 70 && rk.score !== null && rk.score < 50) {
     motivos.push(`Aderência ${ad.nota}/100 com ${ad.confianca}% de confiança.`)
     motivos.push(`Risco ${rk.nivel} (${rk.score}/100).`)
     motivos.push(`Probabilidade estimada de vitória: ${Math.round(prob.p * 100)}%.`)
     return { decisao: 'participar', titulo: 'Participar', motivos, confianca: prob.confianca }
   }
   if (ad.nota >= 70) {
-    motivos.push(`Aderência alta (${ad.nota}), mas risco ${rk.nivel} (${rk.score}).`)
+    motivos.push(`Aderência alta (${ad.nota}), mas risco ${rk.nivel} (${rk.score ?? '—'}).`)
     motivos.push(`Mitigar: ${rk.criticos.slice(0, 2).map((r) => r.descricao).join(' · ') || 'ver aba Riscos'}.`)
     return { decisao: 'participar', titulo: 'Participar com mitigação', motivos, confianca: prob.confianca }
   }
@@ -348,11 +376,15 @@ export interface Avaliacao {
   probabilidade: ResultadoProbabilidade
   viabilidade: ResultadoViabilidade | null
   recomendacao: ResultadoRecomendacao
-  diasRestantes: number
+  /** null = edital sem prazo informado. */
+  diasRestantes: number | null
 }
 
-export function diasAte(data: string): number {
-  const alvo = new Date(data + 'T23:59:59')
+export function diasAte(prazo: string | null): number | null {
+  // Sem prazo informado não há janela: `null` em vez de NaN, que sumia da
+  // carteira em silêncio porque toda comparação com NaN é falsa.
+  if (!prazo) return null
+  const alvo = new Date(prazo + 'T23:59:59')
   return Math.ceil((alvo.getTime() - Date.now()) / 86_400_000)
 }
 
@@ -367,7 +399,7 @@ export function avaliar(o: Oportunidade, perfil: PerfilOrganizacao): Avaliacao {
     historicoPropostas: perfil.historicoPropostas,
     historicoVitorias: perfil.historicoVitorias,
     exigeParceiroLocal: o.exigeParceiroLocal,
-    temParceiroLocal: (compLocal?.score ?? 0) >= 60,
+    temParceiroLocal: compLocal?.score == null ? null : compLocal.score >= 60,
   })
   return {
     aderencia, risco, probabilidade, diasRestantes,

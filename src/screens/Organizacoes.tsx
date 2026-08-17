@@ -2,11 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { MODO_DEMO } from '../app.config'
 import { useDados } from '../lib/dados'
 import {
-  AVISO_NAO_PROVISIONADO, listarOrganizacoes, moduloNaoProvisionado, type OrganizacaoResumo,
+  AVISO_NAO_PROVISIONADO, TITULO_NAO_PROVISIONADO, listarOrganizacoes, moduloNaoProvisionado, type OrganizacaoResumo,
 } from '../lib/catalogo'
 import { PAISES } from '../lib/demo'
 import { data as fmtData } from '../lib/formato'
-import { Badge, Carregando, Erro, Stat, Vazio } from '../ui/kit'
+import { Badge, Carregando, Erro, NaoDisponivel, Stat, Vazio } from '../ui/kit'
 import { FaixaSemBanco } from './Produtos'
 
 /* ============================================================
@@ -23,11 +23,15 @@ export default function Organizacoes() {
   const [itens, setItens] = useState<OrganizacaoResumo[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [semModulo, setSemModulo] = useState(false)
 
   const carregar = useCallback(async () => {
-    setCarregando(true); setErro(null)
+    setCarregando(true); setErro(null); setSemModulo(false)
     try { setItens(await listarOrganizacoes()) }
-    catch (e) { setErro(moduloNaoProvisionado(e) ? AVISO_NAO_PROVISIONADO : ((e as { message?: string }).message ?? 'Não consegui carregar as organizações.')) }
+    catch (e) {
+      if (moduloNaoProvisionado(e)) setSemModulo(true)
+      else setErro((e as { message?: string }).message ?? 'Não consegui carregar as organizações.')
+    }
     setCarregando(false)
   }, [])
 
@@ -35,6 +39,7 @@ export default function Organizacoes() {
 
   if (MODO_DEMO) return <FaixaSemBanco titulo="Organizações" />
   if (carregando) return <Carregando />
+  if (semModulo) return <NaoDisponivel titulo={TITULO_NAO_PROVISIONADO} texto={AVISO_NAO_PROVISIONADO} />
   if (erro) return <Erro texto={erro} onTentar={() => void carregar()} />
 
   const ativas = itens.filter((o) => (o.status ?? 'ativa') === 'ativa').length
@@ -47,9 +52,9 @@ export default function Organizacoes() {
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 16 }}>
-        <div className="card stat"><Stat rotulo="Organizações" valor={String(itens.length)} sub="visíveis para você" /></div>
-        <div className="card stat"><Stat rotulo="Ativas" valor={String(ativas)} sub="em operação" cor="var(--teal)" /></div>
-        <div className="card stat"><Stat rotulo="Sua carteira" valor={String(oportunidades.length)} sub={`na organização atual · ${usuarios.length} pessoa(s)`} cor="var(--brand)" /></div>
+        <Stat rotulo="Organizações" valor={String(itens.length)} sub="visíveis para você" />
+        <Stat rotulo="Ativas" valor={String(ativas)} sub="em operação" cor="var(--teal)" />
+        <Stat rotulo="Sua carteira" valor={String(oportunidades.length)} sub={`na organização atual · ${usuarios.length} pessoa(s)`} cor="var(--brand)" />
       </div>
 
       {itens.length === 0 ? (

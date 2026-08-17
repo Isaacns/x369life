@@ -3,13 +3,13 @@ import { MODO_DEMO, type Perfil } from '../app.config'
 import { useAuth } from '../auth/AuthContext'
 import { useDados } from '../lib/dados'
 import {
-  arquivarProduto, AVISO_NAO_PROVISIONADO, eficaciaDerivada, listarProdutos,
+  arquivarProduto, AVISO_NAO_PROVISIONADO, TITULO_NAO_PROVISIONADO, eficaciaDerivada, listarProdutos,
   moduloNaoProvisionado, salvarProduto,
   type NovoProduto, type Produto,
 } from '../lib/catalogo'
 import { moeda as fmtMoeda } from '../lib/formato'
 import { podeEditarModulo } from '../lib/permissoes'
-import { Badge, Campo, Carregando, Erro, Modal, Rodape, Stat, useToast, Vazio } from '../ui/kit'
+import { Badge, Campo, Carregando, Erro, NaoDisponivel, Modal, Rodape, Stat, useToast, Vazio } from '../ui/kit'
 
 /* ============================================================
    Catálogo de produtos da organização.
@@ -34,6 +34,7 @@ export default function Produtos() {
   const [itens, setItens] = useState<Produto[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [semModulo, setSemModulo] = useState(false)
   const [ficha, setFicha] = useState<Produto | 'novo' | null>(null)
 
   const podeEditar = podeEditarModulo(
@@ -41,9 +42,12 @@ export default function Produtos() {
 
   const recarregar = useCallback(async () => {
     if (!orgId) { setCarregando(false); return }
-    setCarregando(true); setErro(null)
+    setCarregando(true); setErro(null); setSemModulo(false)
     try { setItens(await listarProdutos(orgId)) }
-    catch (e) { setErro(moduloNaoProvisionado(e) ? AVISO_NAO_PROVISIONADO : ((e as { message?: string }).message ?? 'Não consegui carregar o catálogo.')) }
+    catch (e) {
+      if (moduloNaoProvisionado(e)) setSemModulo(true)
+      else setErro((e as { message?: string }).message ?? 'Não consegui carregar o catálogo.')
+    }
     setCarregando(false)
   }, [orgId])
 
@@ -51,6 +55,7 @@ export default function Produtos() {
 
   if (MODO_DEMO) return <FaixaSemBanco titulo="Produtos" />
   if (carregando) return <Carregando />
+  if (semModulo) return <NaoDisponivel titulo={TITULO_NAO_PROVISIONADO} texto={AVISO_NAO_PROVISIONADO} />
   if (erro) return <Erro texto={erro} onTentar={() => void recarregar()} />
 
   const ativos = itens.filter((p) => p.ativo)
@@ -68,13 +73,11 @@ export default function Produtos() {
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 16 }}>
-        <div className="card stat"><Stat rotulo="Produtos" valor={String(itens.length)} sub="no catálogo" /></div>
-        <div className="card stat"><Stat rotulo="Ativos" valor={String(ativos.length)} sub="disponíveis para proposta" cor="var(--teal)" /></div>
-        <div className="card stat">
-          <Stat rotulo="Ficha técnica completa" valor={`${cobertura}%`}
-            sub="potência, fluxo, IP e garantia preenchidos"
-            cor={cobertura >= 80 ? 'var(--teal)' : cobertura >= 40 ? 'var(--amber)' : 'var(--danger)'} />
-        </div>
+        <Stat rotulo="Produtos" valor={String(itens.length)} sub="no catálogo" />
+        <Stat rotulo="Ativos" valor={String(ativos.length)} sub="disponíveis para proposta" cor="var(--teal)" />
+        <Stat rotulo="Ficha técnica completa" valor={`${cobertura}%`}
+          sub="potência, fluxo, IP e garantia preenchidos"
+          cor={cobertura >= 80 ? 'var(--teal)' : cobertura >= 40 ? 'var(--amber)' : 'var(--danger)'} />
       </div>
 
       {itens.length === 0 ? (

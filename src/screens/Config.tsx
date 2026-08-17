@@ -64,7 +64,13 @@ export default function Config() {
             Restaurar padrão
           </button>
           <button className="b" disabled={!admin || soma !== 100 || !alterado}
-            onClick={() => { void setPesos(rascunho).then(() => toast('Nova versão de pesos aplicada. As notas foram recalculadas.')) }}>
+            onClick={() => {
+              void setPesos(rascunho)
+                .then(() => toast('Nova versão de pesos aplicada. As notas foram recalculadas.'))
+                .catch((e: unknown) => toast('Não consegui salvar os pesos: '
+                  + ((e as { message?: string }).message ?? 'falha desconhecida')
+                  + '. Os pesos anteriores continuam valendo.', true))
+            }}>
             Aplicar
           </button>
         </div>

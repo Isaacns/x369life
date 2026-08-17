@@ -4,9 +4,10 @@ import { comPesos, useDados } from '../lib/dados'
 import { paisPorId } from '../lib/demo'
 import { avaliar } from '../lib/scoring'
 import { ETAPAS, type EtapaPipeline } from '../lib/tipos'
-import { corPrazo, moeda, rotuloPrazo } from '../lib/formato'
+import { corPrazo, moeda, rotuloPrazo, totalCarteira } from '../lib/formato'
 import { FaixaDemo, Stat, useToast } from '../ui/kit'
 import { useNavegacao } from '../ui/navegacao'
+import { useAcesso } from '../lib/acesso'
 
 /* §15 dos padrões VIZIO — arrastar-e-soltar HTML5 nativo com tipo próprio.
    No dragover o dataTransfer está protegido: decide-se aceitar pela lista
@@ -18,6 +19,7 @@ const temNossoTipo = (e: DragEvent) =>
 export default function Pipeline() {
   const { oportunidades, perfilOrg, pesos, moverEtapa } = useDados()
   const { abrirOportunidade } = useNavegacao()
+  const { editar: podeMover } = useAcesso('pipeline')
   const toast = useToast()
   const [arrastando, setArrastando] = useState<string | null>(null)
   const [alvo, setAlvo] = useState<EtapaPipeline | null>(null)
@@ -28,7 +30,6 @@ export default function Pipeline() {
   )
 
   const emAndamento = linhas.filter(({ o }) => !['vencida', 'perdida', 'descartada'].includes(o.etapa))
-  const valorTotal = emAndamento.reduce((s, { o }) => s + o.valor, 0)
   const valorPonderado = emAndamento.reduce((s, { o, a }) => s + o.valor * a.probabilidade.p, 0)
   const ganhas = linhas.filter(({ o }) => o.etapa === 'vencida')
   const perdidas = linhas.filter(({ o }) => o.etapa === 'perdida')
@@ -42,6 +43,7 @@ export default function Pipeline() {
     if (!id) return
     const atual = oportunidades.find((o) => o.id === id)
     if (!atual || atual.etapa === etapa) return       // soltar no mesmo lugar não faz nada
+    if (!podeMover) { toast('Seu acesso ao Pipeline é somente leitura.', true); return }
     moverEtapa(id, etapa)
     toast(`Movida para “${ETAPAS.find((x) => x.id === etapa)?.label}”.`)
   }
@@ -57,7 +59,7 @@ export default function Pipeline() {
 
       <div className="grid-stats" style={{ marginBottom: 18 }}>
         <Stat rotulo="Em andamento" valor={emAndamento.length} sub="oportunidades ativas" />
-        <Stat rotulo="Valor total" valor={moeda(valorTotal, 'BRL', true)} sub="se tudo fosse ganho" />
+        <Stat rotulo="Valor total" valor={totalCarteira(emAndamento.map(({ o }) => o))} sub="se tudo fosse ganho" />
         <Stat rotulo="Valor ponderado" valor={moeda(valorPonderado, 'BRL', true)}
           sub="pela probabilidade de cada uma" cor="var(--brand)" />
         <Stat rotulo="Taxa de vitória" valor={taxa === null ? '—' : `${taxa}%`}

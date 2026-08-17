@@ -85,10 +85,15 @@ export function DadosProvider({ children }: { children: ReactNode }) {
   const carregarOrg = useCallback(async () => {
     if (MODO_DEMO || !sb) { setSemOrg(false); return null }
     const x = sb.schema('x369life')
+    const eu = usuarioRef.current?.id
+    if (!eu) { setSemOrg(false); return null }
+    // `.eq('user_id', eu)` é obrigatório: a policy memb_sel devolve todas as
+    // linhas da organização, não só a de quem pergunta. Sem esse filtro, o
+    // limit(1) pega uma linha qualquer e o papel dela vira o perfil da sessão.
     const { data, error } = await x
       .from('memberships')
       .select('org_id, role, organizations(id, nome, pais_origem)')
-      .eq('ativo', true).limit(1)
+      .eq('user_id', eu).eq('ativo', true).limit(1)
     if (error) { setErro(msg(error)); return null }
     const linha = data?.[0] as unknown as
       { org_id: string; role: string
@@ -103,14 +108,14 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     // A policy pa_sel só devolve linha para quem é admin de plataforma:
     // para os demais a consulta volta vazia, sem erro.
     const [{ data: pa }, { data: perfilLinha }, ajuste] = await Promise.all([
-      x.from('platform_admins').select('user_id').limit(1),
+      x.from('platform_admins').select('user_id').eq('user_id', eu).limit(1),
       x.from('profiles').select('nome, foto_url, tratamento')
-        .eq('id', usuarioRef.current?.id ?? '').maybeSingle(),
+        .eq('id', eu).maybeSingle(),
       // Consulta à parte, e tolerante: `permissoes` é coluna recente. Se o
       // banco ainda não a tem, o sistema entra sem ajuste fino em vez de não
       // entrar — o teto do perfil continua valendo, que é a trava real.
       x.from('memberships').select('permissoes')
-        .eq('org_id', linha.org_id).eq('user_id', usuarioRef.current?.id ?? '')
+        .eq('org_id', linha.org_id).eq('user_id', eu)
         .maybeSingle()
         .then((r) => (r.error ? null : (r.data?.permissoes as Usuario['permissoes']) ?? null)),
     ])
@@ -228,15 +233,21 @@ export function DadosProvider({ children }: { children: ReactNode }) {
 
   const moverEtapa = useCallback(async (id: string, etapa: EtapaPipeline) => {
     // otimista: a tela responde na hora; se o banco recusar, revertemos.
-    const antes = oportunidades
+    // Reverter só o item afetado. Guardar o array inteiro fazia dois arrastes
+    // rápidos compartilharem o mesmo retrato: a falha de um desfazia o sucesso
+    // do outro, e a tela passava a discordar do banco até o F5.
+    const antes = oportunidades.find((o) => o.id === id)
     setOportunidades((s) => s.map((o) => (o.id === id ? { ...o, etapa } : o)))
     if (MODO_DEMO) {
-      persistir({ etapas: Object.fromEntries(antes.map((o) => [o.id, o.id === id ? etapa : o.etapa])) })
+      persistir({ etapas: { ...(ler().etapas ?? {}), [id]: etapa } })
       return
     }
     const { error } = await sb!.schema('x369life').from('opportunities')
       .update({ etapa }).eq('id', id)
-    if (error) { setErro(msg(error)); setOportunidades(antes) }
+    if (error) {
+      setErro(msg(error))
+      if (antes) setOportunidades((s) => s.map((o) => (o.id === id ? antes : o)))
+    }
   }, [oportunidades])
 
   const registrarDecisao = useCallback(async (
@@ -288,18 +299,27 @@ export function DadosProvider({ children }: { children: ReactNode }) {
   }, [orgId, usuario, recarregar])
 
   const setPesos = useCallback(async (novos: Record<string, number>) => {
-    setPesosState(novos)
-    if (MODO_DEMO) { persistir({ pesos: novos }); return }
-    if (!orgId || !usuario) return
+    if (MODO_DEMO) { setPesosState(novos); persistir({ pesos: novos }); return }
+    if (!orgId || !usuario) throw new Error('Organização não carregada.')
     const x = sb!.schema('x369life')
     // Versiona em vez de sobrescrever: avaliação histórica não se reescreve.
     const { data } = await x.from('fit_weight_profiles')
       .select('versao').eq('org_id', orgId).order('versao', { ascending: false }).limit(1)
     const proxima = (data?.[0]?.versao ?? 0) + 1
-    await x.from('fit_weight_profiles').update({ ativo: false }).eq('org_id', orgId)
+    // Inserir PRIMEIRO. Desativar antes e falhar no insert deixava a
+    // organização sem nenhum perfil ativo — e na sessão seguinte ela voltava
+    // ao padrão de fábrica, não aos pesos anteriores, em silêncio.
     const { error } = await x.from('fit_weight_profiles')
       .insert({ org_id: orgId, versao: proxima, pesos: novos, ativo: true, criado_por: usuario.id })
-    if (error) { setErro(msg(error)); return }
+    // O erro sobe: quem chamou precisa saber que não salvou. Antes ele era
+    // engolido aqui e a tela dava o toast de sucesso do mesmo jeito.
+    if (error) throw new Error(msg(error))
+
+    // Só agora as versões anteriores saem de cena — a nova já existe.
+    await x.from('fit_weight_profiles').update({ ativo: false })
+      .eq('org_id', orgId).neq('versao', proxima)
+
+    setPesosState(novos)
     await recarregar()
   }, [orgId, usuario, recarregar])
 

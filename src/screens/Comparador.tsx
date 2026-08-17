@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODO_DEMO } from '../app.config'
 import { useDados } from '../lib/dados'
 import {
-  AVISO_NAO_PROVISIONADO, eficaciaDerivada, listarProdutos, moduloNaoProvisionado, type Produto,
+  AVISO_NAO_PROVISIONADO, TITULO_NAO_PROVISIONADO, eficaciaDerivada, listarProdutos, moduloNaoProvisionado, type Produto,
 } from '../lib/catalogo'
 import { moeda as fmtMoeda } from '../lib/formato'
-import { Carregando, Erro, Vazio } from '../ui/kit'
+import { Carregando, Erro, NaoDisponivel, Vazio } from '../ui/kit'
 import { FaixaSemBanco } from './Produtos'
 
 /* ============================================================
@@ -58,17 +58,21 @@ export default function Comparador() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [semModulo, setSemModulo] = useState(false)
   const [escolhidos, setEscolhidos] = useState<string[]>([])
   const [edital, setEdital] = useState('')
 
   const recarregar = useCallback(async () => {
     if (!orgId) { setCarregando(false); return }
-    setCarregando(true); setErro(null)
+    setCarregando(true); setErro(null); setSemModulo(false)
     try {
       const lista = await listarProdutos(orgId)
       setProdutos(lista)
       setEscolhidos(lista.filter((p) => p.ativo).slice(0, 3).map((p) => p.id))
-    } catch (e) { setErro(moduloNaoProvisionado(e) ? AVISO_NAO_PROVISIONADO : ((e as { message?: string }).message ?? 'Não consegui carregar o catálogo.')) }
+    } catch (e) {
+      if (moduloNaoProvisionado(e)) setSemModulo(true)
+      else setErro((e as { message?: string }).message ?? 'Não consegui carregar o catálogo.')
+    }
     setCarregando(false)
   }, [orgId])
 
@@ -96,6 +100,7 @@ export default function Comparador() {
 
   if (MODO_DEMO) return <FaixaSemBanco titulo="Comparador" />
   if (carregando) return <Carregando />
+  if (semModulo) return <NaoDisponivel titulo={TITULO_NAO_PROVISIONADO} texto={AVISO_NAO_PROVISIONADO} />
   if (erro) return <Erro texto={erro} onTentar={() => void recarregar()} />
 
   const selecao = produtos.filter((p) => escolhidos.includes(p.id))

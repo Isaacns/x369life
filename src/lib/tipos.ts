@@ -24,7 +24,7 @@ export const ETAPAS: { id: EtapaPipeline; label: string; prob: number }[] = [
   { id: 'descartada',   label: 'Descartada',         prob: 0.00 },
 ]
 
-export type NivelRisco = 'baixo' | 'moderado' | 'alto' | 'critico'
+export type NivelRisco = 'nao_avaliado' | 'baixo' | 'moderado' | 'alto' | 'critico'
 
 export type Decisao =
   | 'participar' | 'nao_participar' | 'aguardar'
@@ -130,7 +130,9 @@ export interface Oportunidade {
   valor: number
   moeda: Moeda
   publicacao: string
-  prazo: string                 // data-limite de envio da proposta
+  /** Data-limite de envio. `null` = edital sem prazo informado — some dos
+   *  cálculos de janela, mas precisa continuar visível como lacuna. */
+  prazo: string | null
   fonte: string
   fonteUrl?: string
   financiamento: string

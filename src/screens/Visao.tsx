@@ -34,11 +34,11 @@ export default function Visao() {
   const linhas = useMemo(() => todas.filter(({ o, a }) => {
     if (pais && o.paisId !== pais) return false
     if (responsavel && o.responsavel !== responsavel) return false
-    if (janela !== null && a.diasRestantes > janela) return false
+    if (janela !== null && (a.diasRestantes === null || a.diasRestantes > janela)) return false
     return true
   }), [todas, pais, janela, responsavel])
 
-  const abertas = linhas.filter(({ o, a }) => !ENCERRADAS.includes(o.etapa) && a.diasRestantes > 0)
+  const abertas = linhas.filter(({ o, a }) => !ENCERRADAS.includes(o.etapa) && (a.diasRestantes === null || a.diasRestantes > 0))
 
   /* ---------- indicadores ---------- */
   const valorPipeline = abertas.reduce((s, { o }) => s + o.valor, 0)
@@ -48,7 +48,7 @@ export default function Visao() {
     ? Math.round(abertas.reduce((s, { a }) => s + a.aderencia.nota, 0) / abertas.length) : 0
   const confiancaMedia = abertas.length
     ? Math.round(abertas.reduce((s, { a }) => s + a.probabilidade.confianca, 0) / abertas.length) : 0
-  const urgentes = abertas.filter(({ a }) => a.diasRestantes <= 15)
+  const urgentes = abertas.filter(({ a }) => a.diasRestantes !== null && a.diasRestantes <= 15)
 
   /* ---------- prioridade de decisão: valor esperado ÷ tempo restante ----------
      É o coração do "decidir melhor": ordena pelo que mais custa perder se
@@ -56,7 +56,8 @@ export default function Visao() {
   const prioridade = useMemo(() => abertas
     .map((l) => ({
       ...l,
-      urgencia: (l.o.valor * l.a.probabilidade.p) / Math.max(3, l.a.diasRestantes),
+      // Sem prazo não há pressa mensurável: fica no fim da fila de urgência.
+      urgencia: (l.o.valor * l.a.probabilidade.p) / Math.max(3, l.a.diasRestantes ?? 3650),
     }))
     .sort((x, y) => y.urgencia - x.urgencia)
     .slice(0, 5), [abertas])
@@ -97,7 +98,7 @@ export default function Visao() {
     for (let i = 0; i < 6; i++) {
       const d = new Date(agora.getFullYear(), agora.getMonth() + i, 1)
       const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const doMes = abertas.filter(({ o }) => o.prazo.slice(0, 7) === chave)
+      const doMes = abertas.filter(({ o }) => (o.prazo ?? '').slice(0, 7) === chave)
       meses.push({
         mes: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
         esperado: Math.round(doMes.reduce((s, { o, a }) => s + o.valor * a.probabilidade.p, 0)),

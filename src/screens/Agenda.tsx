@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODO_DEMO, type Perfil } from '../app.config'
 import { useAuth } from '../auth/AuthContext'
 import { useDados } from '../lib/dados'
-import { AVISO_NAO_PROVISIONADO, moduloNaoProvisionado } from '../lib/catalogo'
+import {
+  AVISO_NAO_PROVISIONADO, moduloNaoProvisionado, TITULO_NAO_PROVISIONADO,
+} from '../lib/catalogo'
 import { podeEditarModulo } from '../lib/permissoes'
 import {
   arquivar, atualizar, criar, diaMes, horaPadrao, iso, listarSemana, NOMES_DIA,
@@ -10,7 +12,7 @@ import {
   type Compromisso, type LinhaTrilha, type Periodo, type StatusAgenda,
 } from '../lib/agenda'
 import { dataHora } from '../lib/formato'
-import { Campo, Carregando, Erro, Modal, Rodape, useToast } from '../ui/kit'
+import { Campo, Carregando, Erro, Modal, NaoDisponivel, Rodape, useToast } from '../ui/kit'
 
 /* ============================================================
    Agenda da semana — padrão da Pauta Semanal do Inovar:
@@ -34,6 +36,7 @@ export default function Agenda() {
   const [itens, setItens] = useState<Compromisso[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [semModulo, setSemModulo] = useState(false)
   const [editando, setEditando] = useState<Compromisso | null>(null)
   const [novoEm, setNovoEm] = useState<{ data: string; periodo: Periodo } | null>(null)
   const [historico, setHistorico] = useState<LinhaTrilha[] | null>(null)
@@ -44,19 +47,28 @@ export default function Agenda() {
   const podeEditar = podeEditarModulo(
     (usuario?.perfil ?? 'visualizador') as Perfil, usuario?.permissoes, 'agenda')
 
-  const base = useMemo(() => somaDias(segundaDe(new Date()), semana * 7), [semana])
+  // `hoje` é estado, não `new Date()` dentro do memo: com a aba aberta na
+  // virada da noite, a semana ficava congelada na de ontem, nenhum dia era
+  // marcado como hoje, e o botão "Hoje" não destravava (semana já era 0).
+  const [hoje, setHoje] = useState(() => iso(new Date()))
+  useEffect(() => {
+    const t = setInterval(() => setHoje(iso(new Date())), 60_000)
+    return () => clearInterval(t)
+  }, [])
+  const base = useMemo(
+    () => somaDias(segundaDe(new Date(hoje + 'T12:00:00')), semana * 7), [semana, hoje])
   const dias = useMemo(() => Array.from({ length: 7 }, (_, i) => somaDias(base, i)), [base])
-  const hojeIso = iso(new Date())
+  const hojeIso = hoje
   const agora = periodoAgora()
 
   const recarregar = useCallback(async () => {
     if (!orgId) { setCarregando(false); return }
-    setCarregando(true); setErro(null)
+    setCarregando(true); setErro(null); setSemModulo(false)
     try {
       setItens(await listarSemana(orgId, iso(dias[0]), iso(dias[6])))
     } catch (e) {
-      setErro(moduloNaoProvisionado(e) ? AVISO_NAO_PROVISIONADO
-        : ((e as { message?: string }).message ?? 'Não consegui carregar a agenda.'))
+      if (moduloNaoProvisionado(e)) setSemModulo(true)
+      else setErro((e as { message?: string }).message ?? 'Não consegui carregar a agenda.')
     }
     setCarregando(false)
   }, [orgId, dias])
@@ -112,6 +124,7 @@ export default function Agenda() {
     )
   }
   if (carregando) return <Carregando />
+  if (semModulo) return <NaoDisponivel titulo={TITULO_NAO_PROVISIONADO} texto={AVISO_NAO_PROVISIONADO} />
   if (erro) return <Erro texto={erro} onTentar={() => void recarregar()} />
 
   const primeiroNome = (usuario?.nome ?? '').trim().split(/\s+/)[0]

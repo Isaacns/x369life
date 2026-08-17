@@ -2,12 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODO_DEMO } from '../app.config'
 import { useDados } from '../lib/dados'
 import {
-  AVISO_NAO_PROVISIONADO, listarNormas, listarPerfisPais, moduloNaoProvisionado,
+  AVISO_NAO_PROVISIONADO, TITULO_NAO_PROVISIONADO, listarNormas, listarPerfisPais, moduloNaoProvisionado,
   type Norma, type PerfilPais,
 } from '../lib/catalogo'
 import { PAISES } from '../lib/demo'
-import { moeda as fmtMoeda } from '../lib/formato'
-import { Badge, Carregando, Erro, Stat, Vazio } from '../ui/kit'
+import { moeda as fmtMoeda, somarPorMoeda } from '../lib/formato'
+import { Badge, Carregando, Erro, NaoDisponivel, Stat, Vazio } from '../ui/kit'
 import { FaixaSemBanco } from './Produtos'
 
 /* ============================================================
@@ -28,13 +28,17 @@ export default function Mercados() {
   const [normas, setNormas] = useState<Norma[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [semModulo, setSemModulo] = useState(false)
 
   const carregar = useCallback(async () => {
-    setCarregando(true); setErro(null)
+    setCarregando(true); setErro(null); setSemModulo(false)
     try {
       const [p, n] = await Promise.all([listarPerfisPais(), listarNormas()])
       setPerfis(p); setNormas(n)
-    } catch (e) { setErro(moduloNaoProvisionado(e) ? AVISO_NAO_PROVISIONADO : ((e as { message?: string }).message ?? 'Não consegui carregar os mercados.')) }
+    } catch (e) {
+      if (moduloNaoProvisionado(e)) setSemModulo(true)
+      else setErro((e as { message?: string }).message ?? 'Não consegui carregar os mercados.')
+    }
     setCarregando(false)
   }, [])
 
@@ -58,8 +62,9 @@ export default function Mercados() {
         perfil: perfis.find((p) => p.paisId === id) ?? null,
         normas: normas.filter((n) => n.paisId === id).length,
         oportunidades: ops.length,
-        valor: ops.reduce((s, o) => s + o.valor, 0),
-        moeda: ops[0]?.moeda ?? 'BRL',
+        // Sem conversão cambial no sistema, somar moedas diferentes e rotular
+        // com a primeira produzia um número que não significa nada.
+        totais: somarPorMoeda(ops),
         deInteresse: perfilOrg.paisesInteresse.includes(id),
       }
     }).sort((a, b) => b.oportunidades - a.oportunidades || a.nome.localeCompare(b.nome))
@@ -67,6 +72,7 @@ export default function Mercados() {
 
   if (MODO_DEMO) return <FaixaSemBanco titulo="Mercados e países" />
   if (carregando) return <Carregando />
+  if (semModulo) return <NaoDisponivel titulo={TITULO_NAO_PROVISIONADO} texto={AVISO_NAO_PROVISIONADO} />
   if (erro) return <Erro texto={erro} onTentar={() => void carregar()} />
 
   const comCarteira = linhas.filter((l) => l.oportunidades > 0)
@@ -81,9 +87,9 @@ export default function Mercados() {
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 16 }}>
-        <div className="card stat"><Stat rotulo="Países com carteira" valor={String(comCarteira.length)} sub="com ao menos uma oportunidade" /></div>
-        <div className="card stat"><Stat rotulo="Perfil de compra mapeado" valor={`${comPerfil}/${linhas.length}`} sub="portal e modalidade conhecidos" cor="var(--brand)" /></div>
-        <div className="card stat"><Stat rotulo="Exigem parceiro local" valor={String(barrados)} sub="barreira estrutural de entrada" cor={barrados ? 'var(--amber)' : 'var(--teal)'} /></div>
+        <Stat rotulo="Países com carteira" valor={String(comCarteira.length)} sub="com ao menos uma oportunidade" />
+        <Stat rotulo="Perfil de compra mapeado" valor={`${comPerfil}/${linhas.length}`} sub="portal e modalidade conhecidos" cor="var(--brand)" />
+        <Stat rotulo="Exigem parceiro local" valor={String(barrados)} sub="barreira estrutural de entrada" cor={barrados ? 'var(--amber)' : 'var(--teal)'} />
       </div>
 
       {linhas.length === 0 ? (
@@ -110,7 +116,8 @@ export default function Mercados() {
                         : <span style={{ color: 'var(--tx3)', fontSize: 12 }}>—</span>}
                     </td>
                     <td data-l="Valor">
-                      {l.valor > 0 ? fmtMoeda(l.valor, l.moeda)
+                      {l.totais.length > 0
+                        ? l.totais.map((t) => <div key={t.moeda}>{fmtMoeda(t.valor, t.moeda, true)}</div>)
                         : <span style={{ color: 'var(--tx3)', fontSize: 12 }}>—</span>}
                     </td>
                     <td data-l="Portal de compras" style={{ fontSize: 12.5 }}>

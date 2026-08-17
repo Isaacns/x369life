@@ -88,7 +88,7 @@ export function paraOportunidade(
     valor: num(l.valor),
     moeda: l.moeda,
     publicacao: l.publicacao ?? '',
-    prazo: l.prazo ?? '',
+    prazo: (l.prazo as string | null) ?? null,
     fonte: l.fonte_texto ?? '—',
     fonteUrl: l.fonte_url ?? undefined,
     financiamento: l.financiamento ?? '—',

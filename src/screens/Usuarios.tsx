@@ -70,9 +70,9 @@ export default function Usuarios() {
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 16 }}>
-        <div className="card stat"><Stat rotulo="Usuários" valor={String(usuarios.length)} sub="cadastrados" /></div>
-        <div className="card stat"><Stat rotulo="Ativos" valor={String(ativos)} sub="com acesso" cor="var(--teal)" /></div>
-        <div className="card stat"><Stat rotulo="Administradores" valor={String(administradores)} sub="acesso total" cor="var(--brand)" /></div>
+        <Stat rotulo="Usuários" valor={String(usuarios.length)} sub="cadastrados" />
+        <Stat rotulo="Ativos" valor={String(ativos)} sub="com acesso" cor="var(--teal)" />
+        <Stat rotulo="Administradores" valor={String(administradores)} sub="acesso total" cor="var(--brand)" />
       </div>
 
       {!admin && (

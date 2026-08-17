@@ -22,7 +22,7 @@
 :root {
   --bg: #F6F8FB;  --bg2: #EDF1F7;  --card: #FFFFFF;  --card2: #F8FAFC;
   --line: #E3E9F0; --line2: #CDD7E3;
-  --tx: #0E1B2B;  --tx2: #55657A;  --tx3: #8A99AC;
+  --tx: #0E1B2B;  --tx2: #55657A;  --tx3: #67778C;
   --navy: #0A1A2F; --navy2: #12293F;
   --brand: #1B5A96; --brand-deep: #14446F; --brand-soft: #E8F0F8;
   --teal: #0E9384; --amber: #B4790E; --danger: #B42318; --info: #2E6FB8;
@@ -40,7 +40,7 @@
 :root[data-theme="dark"] {
   --bg: #08131F;  --bg2: #0C1B2B;  --card: #0F2135;  --card2: #0C1B2B;
   --line: rgba(148,171,196,.14); --line2: rgba(148,171,196,.24);
-  --tx: #E6EDF5;  --tx2: #97A8BC;  --tx3: #6B7D93;
+  --tx: #E6EDF5;  --tx2: #97A8BC;  --tx3: #94A6BA;
   --brand: #4A90D9; --brand-deep: #2E6FB8; --brand-soft: rgba(74,144,217,.14);
   --teal: #2CB5A0; --amber: #D9A441; --danger: #E5705F;
   --card-shadow: 0 1px 2px rgba(0,0,0,.32), 0 10px 30px rgba(0,0,0,.38);
@@ -190,7 +190,7 @@ table.tbl tbody tr:last-child td { border-bottom: none; }
 .td-acao { text-align: right; white-space: nowrap; }
 
 /* ---------- chips, badges, barras ---------- */
-.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+.badge { border: 1px solid currentColor; display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
 .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line2); background: var(--card); color: var(--tx2); cursor: pointer; font-family: inherit; white-space: nowrap; }
 .chip.on { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); font-weight: 600; }

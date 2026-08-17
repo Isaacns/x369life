@@ -1,7 +1,7 @@
 /* Kit de UI do X369life. Herdado de VIZIO/_template-react-supabase e
    ampliado. Tudo usa as classes de index.css — sem estilo solto. */
 import {
-  createContext, useCallback, useContext, useState,
+  createContext, useCallback, useContext, useEffect, useId, useRef, useState,
   type InputHTMLAttributes, type ReactNode,
 } from 'react'
 import { AVISO_DEMO, AVISO_LEGAL } from '../app.config'
@@ -23,7 +23,7 @@ export function ToastHost({ children }: { children: ReactNode }) {
       {children}
       <div className="nao-imprime" style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 90, display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 340 }}>
         {itens.map((t) => (
-          <div key={t.id} role="status" className="card" style={{ padding: '11px 14px 11px 34px', fontSize: 13, position: 'relative' }}>
+          <div key={t.id} role={t.err ? 'alert' : 'status'} className="card" style={{ padding: '11px 14px 11px 34px', fontSize: 13, position: 'relative' }}>
             <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: t.err ? 'var(--danger)' : 'var(--teal)', fontWeight: 700 }}>{t.err ? '!' : '✓'}</span>
             {t.msg}
           </div>
@@ -33,14 +33,43 @@ export function ToastHost({ children }: { children: ReactNode }) {
   )
 }
 
-/* ---------- Modal ---------- */
+/* ---------- Modal ----------
+   Esc fecha, Tab circula dentro do diálogo, e o foco volta para quem abriu.
+   Está aqui e não em cada tela porque são seis fichas usando a mesma peça —
+   consertar num lugar só é o que garante que nenhuma fique para trás. */
 export function Modal({ titulo, largura = 480, children, onFechar }:
 { titulo: string; largura?: number; children: ReactNode; onFechar: () => void }) {
+  const caixa = useRef<HTMLDivElement>(null)
+  const tituloId = useId()
+
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null
+    const foco = () => caixa.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+
+    foco()?.[0]?.focus()
+
+    function tecla(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.stopPropagation(); onFechar(); return }
+      if (e.key !== 'Tab') return
+      const itens = foco()
+      if (!itens || itens.length === 0) return
+      const primeiro = itens[0]
+      const ultimo = itens[itens.length - 1]
+      if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus() }
+      else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus() }
+    }
+
+    document.addEventListener('keydown', tecla)
+    return () => { document.removeEventListener('keydown', tecla); anterior?.focus?.() }
+  }, [onFechar])
+
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onFechar() }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(10,26,47,.45)', zIndex: 70, display: 'grid', placeItems: 'center', padding: 16 }}>
-      <div role="dialog" aria-modal className="card" style={{ width: '100%', maxWidth: largura, maxHeight: '92vh', overflowY: 'auto', padding: 22 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>{titulo}</h3>
+      <div ref={caixa} role="dialog" aria-modal aria-labelledby={tituloId} className="card"
+        style={{ width: '100%', maxWidth: largura, maxHeight: '92vh', overflowY: 'auto', padding: 22 }}>
+        <h3 id={tituloId} style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>{titulo}</h3>
         {children}
       </div>
     </div>
@@ -121,6 +150,20 @@ export function Carregando() {
 export function SemPermissao() {
   return <Vazio ico="⛔" titulo="Permissão negada" texto="Seu perfil não tem acesso a esta área. Fale com um administrador da organização." />
 }
+/* Estado "ainda não disponível" — não é erro, e não ganha alarme vermelho
+   nem botão de tentar de novo, que ali nunca resolveria. */
+export function NaoDisponivel({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <div className="card card-p" style={{ textAlign: 'center', padding: '38px 24px' }}>
+      <div style={{ fontSize: 26, color: 'var(--tx3)', marginBottom: 8 }} aria-hidden>◌</div>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{titulo}</h2>
+      <p style={{ fontSize: 13.5, color: 'var(--tx2)', margin: '0 auto', maxWidth: '52ch', lineHeight: 1.6 }}>
+        {texto}
+      </p>
+    </div>
+  )
+}
+
 export function Erro({ texto, onTentar }: { texto: string; onTentar?: () => void }) {
   return (
     <div role="alert" className="card card-p" style={{ borderColor: 'var(--danger)' }}>

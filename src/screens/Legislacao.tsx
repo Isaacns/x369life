@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MODO_DEMO } from '../app.config'
 import {
-  AVISO_NAO_PROVISIONADO, ESCOPO_NORMA, listarNormas, moduloNaoProvisionado,
+  AVISO_NAO_PROVISIONADO, TITULO_NAO_PROVISIONADO, ESCOPO_NORMA, listarNormas, moduloNaoProvisionado,
   SITUACAO_NORMA, type Norma,
 } from '../lib/catalogo'
 import { PAISES } from '../lib/demo'
-import { Abas, Badge, Carregando, Erro, Stat, Vazio } from '../ui/kit'
+import { Abas, Badge, Carregando, Erro, NaoDisponivel, Stat, Vazio } from '../ui/kit'
 import { FaixaSemBanco } from './Produtos'
 
 /* ============================================================
@@ -26,14 +26,18 @@ export default function Legislacao() {
   const [normas, setNormas] = useState<Norma[]>([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState<string | null>(null)
+  const [semModulo, setSemModulo] = useState(false)
   const [pais, setPais] = useState('todos')
   const [escopo, setEscopo] = useState<'todos' | Norma['escopo']>('todos')
   const [busca, setBusca] = useState('')
 
   const carregar = useCallback(async () => {
-    setCarregando(true); setErro(null)
+    setCarregando(true); setErro(null); setSemModulo(false)
     try { setNormas(await listarNormas()) }
-    catch (e) { setErro(moduloNaoProvisionado(e) ? AVISO_NAO_PROVISIONADO : ((e as { message?: string }).message ?? 'Não consegui carregar a legislação.')) }
+    catch (e) {
+      if (moduloNaoProvisionado(e)) setSemModulo(true)
+      else setErro((e as { message?: string }).message ?? 'Não consegui carregar a legislação.')
+    }
     setCarregando(false)
   }, [])
 
@@ -57,6 +61,7 @@ export default function Legislacao() {
 
   if (MODO_DEMO) return <FaixaSemBanco titulo="Legislação" />
   if (carregando) return <Carregando />
+  if (semModulo) return <NaoDisponivel titulo={TITULO_NAO_PROVISIONADO} texto={AVISO_NAO_PROVISIONADO} />
   if (erro) return <Erro texto={erro} onTentar={() => void carregar()} />
 
   const vigentes = normas.filter((n) => n.situacao === 'vigente').length
@@ -71,10 +76,10 @@ export default function Legislacao() {
       </div>
 
       <div className="grid-stats" style={{ marginBottom: 16 }}>
-        <div className="card stat"><Stat rotulo="Normas mapeadas" valor={String(normas.length)} sub={`${paisesComNorma.length} país(es)`} /></div>
-        <div className="card stat"><Stat rotulo="Vigentes" valor={String(vigentes)} sub="confirmadas em vigor" cor="var(--teal)" /></div>
-        <div className="card stat"><Stat rotulo="Revogadas ou substituídas" valor={String(revogadas)} sub="citar em proposta custa habilitação" cor="var(--danger)" /></div>
-        <div className="card stat"><Stat rotulo="A conferir" valor={String(aConferir)} sub="ninguém validou ainda" cor="var(--amber)" /></div>
+        <Stat rotulo="Normas mapeadas" valor={String(normas.length)} sub={`${paisesComNorma.length} país(es)`} />
+        <Stat rotulo="Vigentes" valor={String(vigentes)} sub="confirmadas em vigor" cor="var(--teal)" />
+        <Stat rotulo="Revogadas ou substituídas" valor={String(revogadas)} sub="citar em proposta custa habilitação" cor="var(--danger)" />
+        <Stat rotulo="A conferir" valor={String(aConferir)} sub="ninguém validou ainda" cor="var(--amber)" />
       </div>
 
       <div className="card card-p" style={{ marginBottom: 16 }}>

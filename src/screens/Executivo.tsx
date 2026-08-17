@@ -9,7 +9,7 @@ import { comPesos, useDados } from '../lib/dados'
 import { paisPorId } from '../lib/demo'
 import { avaliar, ROTULOS_ADERENCIA } from '../lib/scoring'
 import { ETAPAS } from '../lib/tipos'
-import { corRisco, moeda, pct } from '../lib/formato'
+import { corRisco, moeda, pct, totalCarteira } from '../lib/formato'
 import { FaixaDemo, Vazio } from '../ui/kit'
 import { useNavegacao } from '../ui/navegacao'
 import { useTema } from '../ui/tema'
@@ -26,7 +26,7 @@ export default function Executivo() {
     () => oportunidades.map((o) => ({ o, a: avaliar(comPesos(o, pesos), perfilOrg) })),
     [oportunidades, perfilOrg, pesos],
   )
-  const abertas = linhas.filter(({ o, a }) => !ENCERRADAS.includes(o.etapa) && a.diasRestantes > 0)
+  const abertas = linhas.filter(({ o, a }) => !ENCERRADAS.includes(o.etapa) && (a.diasRestantes === null || a.diasRestantes > 0))
 
   const valorBruto = abertas.reduce((s, { o }) => s + o.valor, 0)
   const valorEsperado = abertas.reduce((s, { o, a }) => s + o.valor * a.probabilidade.p, 0)
@@ -114,7 +114,8 @@ export default function Executivo() {
       { rotulo: '90+ d', min: 91, max: 99999 },
     ]
     return blocos.map((b) => {
-      const g = abertas.filter(({ a }) => a.diasRestantes >= b.min && a.diasRestantes <= b.max)
+      const g = abertas.filter(({ a }) => a.diasRestantes !== null
+        && a.diasRestantes >= b.min && a.diasRestantes <= b.max)
       return { rotulo: b.rotulo, qtd: g.length, esperado: Math.round(g.reduce((s, { o, a }) => s + o.valor * a.probabilidade.p, 0)) }
     })
   }, [abertas])
@@ -139,7 +140,8 @@ export default function Executivo() {
           ele codifica estado: severidade do achado, situação da fonte. */}
       <div className="card card-p" style={{ marginBottom: 16 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 20, marginBottom: 16 }}>
-          <Grande rotulo="Valor em disputa" valor={moeda(valorBruto, 'BRL', true)} sub={`${abertas.length} editais abertos`} />
+          <Grande rotulo="Valor em disputa" valor={totalCarteira(abertas.map(({ o }) => o))}
+            sub={`${abertas.length} editais abertos`} />
           <Grande rotulo="Valor esperado" valor={moeda(valorEsperado, 'BRL', true)} cor="var(--brand)"
             sub={`${pct((valorEsperado / valorBruto) * 100)} do bruto`} />
           <Grande rotulo="Margem esperada" valor={moeda(margemEsperada, 'BRL', true)} cor="var(--teal)"

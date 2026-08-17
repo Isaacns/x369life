@@ -42,7 +42,7 @@ const pctStr = (v: number) => `${Math.round(v)}%`
 
 export function cruzarPadroes(linhas: Linha[], perfil: PerfilOrganizacao): Achado[] {
   const achados: Achado[] = []
-  const abertas = linhas.filter(({ o, a }) => !ENCERRADAS.includes(o.etapa) && a.diasRestantes > 0)
+  const abertas = linhas.filter(({ o, a }) => !ENCERRADAS.includes(o.etapa) && (a.diasRestantes === null || a.diasRestantes > 0))
   if (abertas.length === 0) return achados
 
   const valorPonderadoTotal = abertas.reduce((s, { o, a }) => s + o.valor * a.probabilidade.p, 0)
@@ -161,8 +161,8 @@ export function cruzarPadroes(linhas: Linha[], perfil: PerfilOrganizacao): Achad
   /* ---------- 4. Aglomeração de prazos ---------- */
   const semanas = new Map<number, Linha[]>()
   for (const l of abertas) {
-    if (l.a.diasRestantes > 90) continue
-    const sem = Math.floor(l.a.diasRestantes / 7)
+    if ((l.a.diasRestantes ?? 0) > 90) continue
+    const sem = Math.floor((l.a.diasRestantes ?? 0) / 7)
     semanas.set(sem, [...(semanas.get(sem) ?? []), l])
   }
   const gargalo = [...semanas.entries()].filter(([, ls]) => ls.length >= 3).sort((x, y) => x[0] - y[0])[0]
@@ -175,7 +175,7 @@ export function cruzarPadroes(linhas: Linha[], perfil: PerfilOrganizacao): Achad
       titulo: `${ls.length} propostas vencem na mesma semana`,
       detalhe: `Entre ${sem * 7} e ${sem * 7 + 6} dias a equipe precisa fechar ${ls.length} propostas ao mesmo tempo. `
         + `Concorrência interna por atenção costuma custar mais editais do que concorrência externa.`,
-      evidencias: ls.map((l) => `${l.o.titulo} — ${l.a.diasRestantes} dias, ${fmtMi(l.o.valor)}`),
+      evidencias: ls.map((l) => `${l.o.titulo} — ${(l.a.diasRestantes ?? 0)} dias, ${fmtMi(l.o.valor)}`),
       recomendacao: 'Priorizar por valor esperado e decidir agora qual vai receber menos esforço — ou antecipar a preparação de uma delas.',
       valorEmJogo: ls.reduce((s, l) => s + l.o.valor * l.a.probabilidade.p, 0),
       amostra: ls.length,

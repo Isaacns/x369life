@@ -30,7 +30,8 @@ export default function Oportunidades() {
   const linhas = useMemo(() => oportunidades
     .map((o) => ({ o, a: avaliar(comPesos(o, pesos), perfilOrg) }))
     .filter(({ o, a }) => {
-      if (soAbertas && (a.diasRestantes <= 0 || ['vencida', 'perdida', 'descartada'].includes(o.etapa))) return false
+      if (soAbertas && ((a.diasRestantes !== null && a.diasRestantes <= 0)
+        || ['vencida', 'perdida', 'descartada'].includes(o.etapa))) return false
       if (pais && o.paisId !== pais) return false
       if (etapa && o.etapa !== etapa) return false
       if (a.aderencia.nota < aderenciaMin) return false
@@ -40,7 +41,8 @@ export default function Oportunidades() {
       }
       return true
     })
-    .sort((x, y) => x.a.diasRestantes - y.a.diasRestantes),
+    // Sem prazo vai para o fim da fila, não para o começo.
+    .sort((x, y) => (x.a.diasRestantes ?? Infinity) - (y.a.diasRestantes ?? Infinity)),
   [oportunidades, perfilOrg, pesos, busca, pais, etapa, aderenciaMin, soAbertas])
 
   if (oportunidadeId) return <DetalheOportunidade id={oportunidadeId} />
