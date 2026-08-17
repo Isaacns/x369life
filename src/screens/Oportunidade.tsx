@@ -164,8 +164,40 @@ function Resumo({ o, a }: { o: Oportunidade; a: Avaliacao }) {
         <div className="card card-p">
           <div className="sec-h">
             <h2>De onde vem a probabilidade</h2>
-            <span className="sub">cada fator, em contribuição visível</span>
+            <span className="sub">do ponto de partida ao resultado</span>
           </div>
+
+          {/* Ponto de partida. A concorrência é o maior termo do modelo e
+              antes não aparecia: as barras mostravam só os ajustes, e uma
+              probabilidade baixa surgia sem explicação visível. */}
+          <div style={{
+            display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
+            paddingBottom: 11, marginBottom: 13, borderBottom: '1px solid var(--line)',
+          }}>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 500 }}>
+                Ponto de partida
+                {!a.probabilidade.concorrentesConhecidos && (
+                  <span style={{ color: 'var(--amber)', fontSize: 11 }}> · dado ausente</span>
+                )}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--tx3)' }}>
+                {a.probabilidade.concorrentesConhecidos
+                  ? `1 em ${a.probabilidade.concorrentes} concorrentes estimados`
+                  : `concorrência não informada — assumidos ${a.probabilidade.concorrentes}`}
+              </div>
+            </div>
+            <b style={{ fontSize: 21, fontWeight: 750, letterSpacing: '-.03em',
+              fontVariantNumeric: 'tabular-nums', color: 'var(--tx2)' }}>
+              {Math.round(a.probabilidade.base * 100)}%
+            </b>
+          </div>
+
+          <div style={{ fontFamily: 'var(--mono)', fontSize: 10, textTransform: 'uppercase',
+            letterSpacing: '.1em', color: 'var(--tx3)', marginBottom: 9 }}>
+            O que move a partir daí
+          </div>
+
           {a.probabilidade.fatores.map((f) => {
             const largura = (Math.abs(f.contribuicao) / maxAbs) * 46
             const positivo = f.contribuicao >= 0
@@ -190,9 +222,27 @@ function Resumo({ o, a }: { o: Oportunidade; a: Avaliacao }) {
               </div>
             )
           })}
-          <p style={{ fontSize: 11.5, color: 'var(--tx3)', margin: '10px 0 0', lineHeight: 1.5 }}>
-            Modelo causal explicável, não modelo estatístico treinado. À esquerda o que reduz a chance,
-            à direita o que aumenta. Faixa larga = dado faltando.
+          <div style={{
+            display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap',
+            paddingTop: 12, marginTop: 3, borderTop: '1px solid var(--line)',
+          }}>
+            {/* Fecha a conta. O número já é KPI no topo da tela — aqui ele
+                existe para o percurso terminar onde começou, no mesmo peso
+                do ponto de partida, sem virar um segundo indicador. */}
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600 }}>Resultado</div>
+              <div style={{ fontSize: 11.5, color: 'var(--tx3)' }}>probabilidade de vitória</div>
+            </div>
+            <b style={{ fontSize: 21, fontWeight: 750, letterSpacing: '-.03em',
+              fontVariantNumeric: 'tabular-nums', color: 'var(--brand)' }}>
+              {Math.round(a.probabilidade.p * 100)}%
+            </b>
+          </div>
+
+          <p style={{ fontSize: 11.5, color: 'var(--tx3)', margin: '11px 0 0', lineHeight: 1.5 }}>
+            Modelo causal explicável, não modelo estatístico treinado. A conta parte de
+            1 ÷ concorrentes e cada ajuste soma em log-odds — por isso os pontos percentuais
+            não fecham por soma direta. À esquerda o que reduz a chance, à direita o que aumenta.
           </p>
         </div>
       </div>

@@ -134,8 +134,14 @@ export interface ResultadoProbabilidade {
   p: number                       // 0..1
   faixa: [number, number]         // intervalo pela incerteza dos dados
   confianca: number               // 0..100
+  /** Ajustes sobre o ponto de partida. NÃO inclui a concorrência: ela É o
+      ponto de partida, não um desvio dele. */
   fatores: FatorProbabilidade[]
-  base: number                    // ponto de partida (1/concorrentes)
+  /** Ponto de partida: 1 ÷ concorrentes. É o maior termo do modelo. */
+  base: number
+  /** Como o ponto de partida foi obtido, para a tela poder dizer. */
+  concorrentes: number
+  concorrentesConhecidos: boolean
 }
 
 const logit = (p: number) => Math.log(p / (1 - p))
@@ -165,12 +171,10 @@ export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabi
   const n = nConhecido ? (e.concorrentesEstimados as number) : 5
   const base = limitar(1 / n, 0.02, 0.5)
   let z = logit(base)
-  fatores.push({
-    label: 'Concorrência',
-    detalhe: nConhecido ? `${n} concorrentes estimados` : 'não informada — assumidos 5',
-    contribuicao: 0,   // o efeito da concorrência é a própria base — ver `base`
-    conhecido: nConhecido,
-  })
+  // A concorrência NÃO entra em `fatores`. Ela não é um ajuste sobre a base —
+  // ela é a base. Empurrá-la para a lista com contribuição 0 dava uma barra
+  // vazia para o maior termo do modelo, e a tela mostrava só ajustes positivos
+  // ao lado de uma probabilidade baixa, sem explicar de onde vinha a queda.
 
   /* 2. Aderência: o driver principal. Centrada em 60 (abaixo disso a
         empresa costuma nem habilitar). Escala ±1,6 em log-odds.          */
@@ -256,9 +260,11 @@ export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabi
   /* Confiança = quanto do modelo está apoiado em dado real.
      A faixa abre proporcionalmente à falta de dado — probabilidade
      sozinha engana; probabilidade com intervalo, não.                    */
-  const conhecidos = fatores.filter((f) => f.conhecido).length
+  // A concorrência conta na confiança mesmo fora da lista de ajustes: não
+  // saber quantos disputam é a maior lacuna possível neste modelo.
+  const conhecidos = fatores.filter((f) => f.conhecido).length + (nConhecido ? 1 : 0)
   const confianca = Math.round(
-    (conhecidos / fatores.length) * 60 + (e.aderencia.confianca / 100) * 40,
+    (conhecidos / (fatores.length + 1)) * 60 + (e.aderencia.confianca / 100) * 40,
   )
   const amplitude = (1 - confianca / 100) * 0.28 + 0.05
   const faixa: [number, number] = [
@@ -266,7 +272,7 @@ export function calcularProbabilidade(e: EntradaProbabilidade): ResultadoProbabi
     limitar(p + amplitude, 0.01, 0.95),
   ]
 
-  return { p, faixa, confianca, fatores, base }
+  return { p, faixa, confianca, fatores, base, concorrentes: n, concorrentesConhecidos: nConhecido }
 }
 
 /* ---------- viabilidade e valor esperado ---------- */
