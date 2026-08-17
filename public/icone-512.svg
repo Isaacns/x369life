@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Ícone de instalação. Sem cantos arredondados próprios: iOS e Android
+       aplicam a máscara deles, e canto duplo fica torto. O respiro em volta
+       é o "safe zone" de 10% que as duas plataformas recortam. -->
+  <rect width="512" height="512" fill="#0A1A2F"/>
+  <g>
+    <circle cx="160" cy="160" r="38" fill="#E0A93C"/>
+    <circle cx="256" cy="160" r="38" fill="#1B5A96"/>
+    <circle cx="352" cy="160" r="38" fill="#1B5A96"/>
+    <circle cx="160" cy="256" r="38" fill="#1B5A96"/>
+    <circle cx="256" cy="256" r="38" fill="#E0A93C"/>
+    <circle cx="352" cy="256" r="38" fill="#1B5A96"/>
+    <circle cx="160" cy="352" r="38" fill="#1B5A96"/>
+    <circle cx="256" cy="352" r="38" fill="#1B5A96"/>
+    <circle cx="352" cy="352" r="38" fill="#E0A93C"/>
+  </g>
+</svg>

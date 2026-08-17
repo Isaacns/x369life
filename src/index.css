@@ -368,3 +368,102 @@ textarea.inp { height: auto; min-height: 84px; resize: vertical; padding-top: 10
 .link-ext { color: var(--brand); font-weight: 600; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--brand) 35%, transparent); }
 .link-ext:hover { border-bottom-color: var(--brand); background: var(--brand-soft); }
 .link-ext::after { content: ' ↗'; font-size: .85em; opacity: .7; }
+
+/* ============================================================
+   APLICATIVO NO CELULAR
+   ------------------------------------------------------------
+   A gaveta por hambúrguer no topo à esquerda é o pior lugar possível para o
+   polegar: é o canto mais distante da mão, e toda troca de tela custava dois
+   toques. No celular a navegação desce para a base, onde o polegar já está.
+   ============================================================ */
+
+/* Recorte de tela: notch em cima, indicador de home embaixo, cantos curvos
+   nas laterais. Sem isto o conteúdo encosta na borda física. */
+:root {
+  --seguro-topo: env(safe-area-inset-top, 0px);
+  --seguro-base: env(safe-area-inset-bottom, 0px);
+  --seguro-esq: env(safe-area-inset-left, 0px);
+  --seguro-dir: env(safe-area-inset-right, 0px);
+  --altura-barra: 60px;
+}
+
+/* Toque: sem o flash cinza do Android e sem o "puxar para recarregar"
+   disparando quando a pessoa rola uma lista até o topo. */
+@media (pointer: coarse) {
+  * { -webkit-tap-highlight-color: transparent; }
+  html, body { overscroll-behavior-y: contain; }
+  /* 44px é o mínimo que a mão acerta. Vale só onde o dedo é o ponteiro —
+     o desktop continua compacto. */
+  .b, .b-ghost { min-height: 46px; }
+  .b-sm { min-height: 44px; padding: 0 14px; }
+  .ag-mais { width: 44px; height: 44px; }
+  .ag-per-h { min-height: 44px; }
+  .chip { min-height: 38px; padding: 0 14px; display: inline-flex; align-items: center; }
+  input[type="checkbox"] { width: 20px; height: 20px; }
+  .inp, select.inp { min-height: 46px; }
+  /* Alvo maior sem caixa maior: a área clicável cresce por fora do desenho. */
+  .x-user { min-height: 44px; }
+}
+
+.x-barra { display: none; }
+
+@media (max-width: 900px) {
+  /* O conteúdo termina acima da barra, não atrás dela. */
+  .x-content {
+    padding-left: max(14px, var(--seguro-esq));
+    padding-right: max(14px, var(--seguro-dir));
+    padding-bottom: calc(var(--altura-barra) + var(--seguro-base) + 24px);
+  }
+  .x-top {
+    padding-top: calc(10px + var(--seguro-topo));
+    padding-left: max(14px, var(--seguro-esq));
+    padding-right: max(14px, var(--seguro-dir));
+  }
+  .x-side { padding-top: calc(18px + var(--seguro-topo)); }
+
+  /* O hambúrguer sai do topo: quem navega agora é a barra de baixo. A gaveta
+     continua existindo, aberta pelo "Mais", para os módulos menos usados. */
+  .x-burger { display: none; }
+
+  .x-barra {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    padding: 6px max(4px, var(--seguro-esq)) calc(4px + var(--seguro-base)) max(4px, var(--seguro-dir));
+    background: var(--vidro-forte);
+    backdrop-filter: blur(18px);
+    border-top: 1px solid var(--line);
+  }
+  .x-barra button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; min-height: 50px; padding: 4px 2px;
+    border: none; background: none; cursor: pointer;
+    font-family: inherit; font-size: 10px; font-weight: 600; letter-spacing: -.01em;
+    color: var(--tx3); border-radius: 12px;
+  }
+  .x-barra button svg { flex: none; }
+  .x-barra button.on { color: var(--brand); }
+  .x-barra button.on svg { stroke-width: 2; }
+  .x-barra button:active { background: var(--bg2); }
+}
+
+/* Instalado na tela inicial não há barra do navegador: o topo do app encosta
+   na barra de status, e sem esta folga o título fica embaixo do relógio. */
+@media (display-mode: standalone) {
+  .x-top { padding-top: calc(12px + var(--seguro-topo)); }
+}
+
+/* ---------- apresentação de primeiro acesso ---------- */
+.bv { min-height: 100dvh; display: flex; flex-direction: column;
+  padding: max(16px, var(--seguro-topo)) max(16px, var(--seguro-esq)) max(16px, var(--seguro-base)) max(16px, var(--seguro-dir)); }
+.bv-palco { flex: 1; display: flex; flex-direction: column; justify-content: center;
+  gap: 22px; text-align: center; max-width: 560px; width: 100%; margin: 0 auto; }
+.bv-visual { min-height: 116px; display: grid; place-items: center; }
+.bv h2 { font-size: clamp(21px, 5.6vw, 27px); font-weight: 750; letter-spacing: -.035em; text-wrap: balance; }
+.bv p { font-size: clamp(14.5px, 3.9vw, 16px); color: var(--tx2); line-height: 1.62; max-width: 46ch; margin: 0 auto; }
+/* Rodapé fixo na base: no celular é onde o polegar já está. */
+.bv-pe { display: flex; align-items: center; gap: 12px; max-width: 560px; width: 100%; margin: 0 auto; padding-top: 18px; }
+.bv-pontos { display: flex; gap: 7px; align-items: center; }
+/* O ponto é 6px, mas o alvo tem 44 — o dedo acerta a área, não o desenho. */
+.bv-pontos button { width: 24px; height: 44px; border: none; background: none; padding: 0; cursor: pointer; display: grid; place-items: center; }
+.bv-pontos button i { display: block; width: 6px; height: 6px; border-radius: 20px; background: var(--line2); transition: width .24s ease, background .24s ease; }
+.bv-pontos button[aria-current="true"] i { width: 22px; background: var(--brand); }

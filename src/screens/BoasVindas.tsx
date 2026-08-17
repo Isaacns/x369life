@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { APP } from '../app.config'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { useDados } from '../lib/dados'
-import { Emblema } from '../ui/Marca'
+import { Emblema, Marca } from '../ui/Marca'
 
 /* ============================================================
    Boas-vindas e apresentação do sistema no primeiro acesso.
@@ -27,7 +26,6 @@ function marcarVisto(userId: string | undefined) {
 }
 
 interface Passo {
-  eyebrow: string
   titulo: string
   texto: string
   visual: React.ReactNode
@@ -102,14 +100,12 @@ function Fatores() {
 
 const PASSOS: Passo[] = [
   {
-    eyebrow: 'O que é',
     titulo: 'Uma estação de decisão, não um radar',
     texto: 'O X369life responde a uma pergunta só: vale a pena disputar este edital, e o que falta para disputar. '
       + 'Ele não sai caçando editais pelo mundo — você traz o edital, ele faz a conta e mostra de onde veio cada número.',
     visual: <Emblema tamanho={72} />,
   },
   {
-    eyebrow: 'Aderência',
     titulo: 'Toda nota vem com a confiança dela',
     texto: 'Nove critérios comparam o edital com o perfil da sua empresa. Mas nota sozinha engana: '
       + 'critério sem dado entra como ausente e derruba a confiança, em vez de virar nota cheia. '
@@ -117,21 +113,18 @@ const PASSOS: Passo[] = [
     visual: <TresNumeros />,
   },
   {
-    eyebrow: 'Probabilidade',
     titulo: 'A chance de vitória é aberta, fator a fator',
     texto: 'Cada disputa recebe uma probabilidade — e a tela mostra o que puxa para cima e o que puxa para baixo. '
       + 'É um modelo causal explicável, não um modelo treinado em histórico. Você pode discordar de uma parcela específica.',
     visual: <Fatores />,
   },
   {
-    eyebrow: 'Evidência',
     titulo: 'Nenhum dado aparece sem origem',
     texto: 'Todo campo extraído de um edital carrega documento, página, seção e o trecho literal. '
       + 'Numa reunião de comitê, “o sistema disse” não sustenta uma decisão de milhões — a citação sustenta.',
     visual: <Evidencia />,
   },
   {
-    eyebrow: 'Decisão',
     titulo: 'O sistema recomenda; quem decide é você',
     texto: 'A recomendação sai dos números, com motivos e nível de confiança. A decisão exige justificativa e responsável, '
       + 'e fica registrada para sempre: rever uma decisão gera um novo registro, nunca apaga o anterior.',
@@ -164,7 +157,9 @@ export default function BoasVindas({ onConcluir }: { onConcluir: () => void }) {
 
   useEffect(() => {
     function tecla(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === 'Enter') avancar()
+      // Enter fica de fora: o botão focado já dispara o próprio clique,
+      // e escutar aqui também avançava dois passos de uma vez.
+      if (e.key === 'ArrowRight') avancar()
       if (e.key === 'ArrowLeft') voltar()
       if (e.key === 'Escape') encerrar()
     }
@@ -174,74 +169,60 @@ export default function BoasVindas({ onConcluir }: { onConcluir: () => void }) {
 
   const primeiroNome = (usuario?.nome ?? '').trim().split(/\s+/)[0]
 
+  /* Deslizar é como se troca de passo no celular. O teclado continua valendo
+     no desktop — os dois caminhos, não um só. */
+  const toque = useRef<{ x: number; y: number } | null>(null)
+
   return (
-    <div className="x-acesso" style={{
-      minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20,
-      opacity: saindo ? 0 : 1, transition: 'opacity .26s ease',
-    }}>
-      <div className="card" style={{ width: '100%', maxWidth: 620, padding: 0, overflow: 'hidden' }}>
-        <div className="fileira-luz" style={{ borderRadius: 0, opacity: 1 }} />
+    <div className="x-acesso bv"
+      onTouchStart={(e) => { toque.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }}
+      onTouchEnd={(e) => {
+        if (!toque.current) return
+        const dx = e.changedTouches[0].clientX - toque.current.x
+        const dy = e.changedTouches[0].clientY - toque.current.y
+        toque.current = null
+        // Só conta como deslize horizontal se for mesmo horizontal: senão a
+        // rolagem vertical trocaria de passo sem querer.
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+        if (dx < 0) avancar(); else voltar()
+      }}
+      style={{ opacity: saindo ? 0 : 1, transition: 'opacity .26s ease' }}>
 
-        <div style={{ padding: '30px 34px 26px' }}>
-          {i === 0 && (
-            <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <p style={{ fontFamily: 'var(--mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.16em', color: 'var(--brand)', margin: 0 }}>
-                Bem-vindo{primeiroNome ? `, ${primeiroNome}` : ''}
-              </p>
-              <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.04em', margin: '8px 0 0' }}>
-                {APP.marca}<span style={{ fontWeight: 400, color: 'var(--tx2)' }}>{APP.sufixo}</span>
-              </h1>
-              {orgNome && (
-                <p style={{ fontSize: 13, color: 'var(--tx2)', margin: '4px 0 0' }}>{orgNome}</p>
-              )}
-            </div>
-          )}
+      <header style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: 560, width: '100%', margin: '0 auto' }}>
+        <Marca tamanho={26} respira />
+        <span style={{ flex: 1 }} />
+        <button className="b-sm" onClick={encerrar}
+          style={{ border: 'none', background: 'none', color: 'var(--tx3)' }}>
+          Pular
+        </button>
+      </header>
 
-          {/* palco do passo */}
-          <div key={i} style={{ animation: 'passoEntra .3s ease both', textAlign: 'center', padding: '22px 0 6px' }}>
-            <div style={{ minHeight: 108, display: 'grid', placeItems: 'center', marginBottom: 20 }}>
-              {p.visual}
-            </div>
-            <p style={{ fontFamily: 'var(--mono)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.16em', color: 'var(--brand)', margin: 0 }}>
-              {p.eyebrow}
-            </p>
-            <h2 style={{ fontSize: 22, fontWeight: 750, letterSpacing: '-.03em', margin: '8px 0 10px', textWrap: 'balance' }}>
-              {p.titulo}
-            </h2>
-            <p style={{ fontSize: 14.5, color: 'var(--tx2)', lineHeight: 1.62, margin: '0 auto', maxWidth: '52ch' }}>
-              {p.texto}
-            </p>
-          </div>
-        </div>
-
-        {/* rodapé de navegação */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12, padding: '14px 24px 18px',
-          borderTop: '1px solid var(--line)',
-        }}>
-          <button className="b-sm" onClick={encerrar} style={{ border: 'none', background: 'none', color: 'var(--tx3)' }}>
-            Pular apresentação
-          </button>
-          <span style={{ flex: 1 }} />
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} role="tablist" aria-label="Progresso">
-            {PASSOS.map((_, n) => (
-              <button key={n} onClick={() => setI(n)} aria-label={`Passo ${n + 1}`} aria-selected={n === i}
-                style={{
-                  width: n === i ? 20 : 7, height: 7, borderRadius: 20, border: 'none', padding: 0, cursor: 'pointer',
-                  background: n === i ? 'var(--brand)' : 'var(--line2)',
-                  transition: 'width .24s ease, background .24s ease',
-                }} />
-            ))}
-          </div>
-          <span style={{ flex: 1 }} />
-          {i > 0 && <button className="b-ghost" onClick={voltar}>Voltar</button>}
-          <button className="b" onClick={avancar}>{ultimo ? 'Começar' : 'Avançar'}</button>
+      <div className="bv-palco" key={i} style={{ animation: 'passoEntra .3s ease both' }}>
+        {i === 0 && (
+          <p style={{ fontFamily: 'var(--mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.16em', color: 'var(--brand)', margin: 0 }}>
+            Bem-vindo{primeiroNome ? `, ${primeiroNome}` : ''}{orgNome ? ` · ${orgNome}` : ''}
+          </p>
+        )}
+        <div className="bv-visual">{p.visual}</div>
+        <div>
+          <h2>{p.titulo}</h2>
+          <p style={{ marginTop: 10 }}>{p.texto}</p>
         </div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--tx3)', marginTop: 14, fontFamily: 'var(--mono)', letterSpacing: '.04em' }}>
-        {APP.nome} v{APP.versao} · {APP.rodape}
-      </p>
+      <div className="bv-pe">
+        <div className="bv-pontos" role="tablist" aria-label="Passos da apresentação">
+          {PASSOS.map((passo, n) => (
+            <button key={passo.titulo} onClick={() => setI(n)}
+              aria-current={n === i} aria-label={`Passo ${n + 1}: ${passo.titulo}`}>
+              <i />
+            </button>
+          ))}
+        </div>
+        <span style={{ flex: 1 }} />
+        {i > 0 && <button className="b-ghost" onClick={voltar}>Voltar</button>}
+        <button className="b" onClick={avancar}>{ultimo ? 'Começar' : 'Avançar'}</button>
+      </div>
     </div>
   )
 }

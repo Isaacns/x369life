@@ -1,0 +1,18 @@
+{
+  "name": "X369life — decisão de licitação",
+  "short_name": "X369life",
+  "description": "Vale a pena disputar este edital, e o que falta para disputar.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A1A2F",
+  "theme_color": "#0A1A2F",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icone-512.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icone-512.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
