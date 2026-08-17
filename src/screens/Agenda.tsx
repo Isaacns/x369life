@@ -259,11 +259,12 @@ function Dia({ data, nome, hoje, itens, prazos, agora, fechados, podeEditar, onT
             <div className="ag-per-corpo">
               {doPeriodo.length === 0 ? <div className="ag-vazio">—</div> : doPeriodo.map((c) => (
                 <div key={c.id} className="ag-evt" draggable={podeEditar}
-                  style={{ borderLeftColor: STATUS[c.status].cor }}
                   onDragStart={(e) => { e.dataTransfer.setData('text/plain', c.id); e.currentTarget.classList.add('arrastando') }}
                   onDragEnd={(e) => e.currentTarget.classList.remove('arrastando')}
                   onClick={() => onAbrir(c)}>
-                  <div className="h">{c.hora ?? '—'}</div>
+                  <div className="h" style={{ color: STATUS[c.status].cor }}>
+                    <span className="pt" aria-hidden />{c.hora ?? '—'}
+                  </div>
                   <div className="t">{c.titulo}</div>
                   {c.oportunidadeTitulo && <div className="op">◎ {c.oportunidadeTitulo}</div>}
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 5, flexWrap: 'wrap' }}>

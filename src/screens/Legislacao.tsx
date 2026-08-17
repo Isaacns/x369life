@@ -106,9 +106,11 @@ export default function Legislacao() {
             const sit = SITUACAO_NORMA[n.situacao]
             const pais = n.paisId ? PAISES.find((p) => p.id === n.paisId) : null
             return (
-              <div key={n.id} className="card" style={{ padding: '14px 16px', borderLeft: `2px solid ${sit.cor}` }}>
+              <div key={n.id} className="card" style={{ padding: '14px 16px' }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                  <b style={{ fontSize: 14.5, fontWeight: 700 }}>{n.identificacao}</b>
+                  <b style={{ fontSize: 14.5, fontWeight: 700, color: n.situacao === 'revogada' ? 'var(--danger)' : undefined }}>
+                    {n.identificacao}
+                  </b>
                   <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{TIPO[n.tipo]}</span>
                   <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <Badge cor={sit.cor}>{sit.label}</Badge>

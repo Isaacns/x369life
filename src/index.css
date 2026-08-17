@@ -348,14 +348,17 @@ textarea.inp { height: auto; min-height: 84px; resize: vertical; padding-top: 10
 .ag-per.fechado .ag-per-corpo { display: none; }
 .ag-per.solta { outline: 2px dashed var(--brand); outline-offset: -2px; }
 
-/* A listra da esquerda NÃO é enfeite: é a cor do status do compromisso,
-   definida em linha por STATUS[]. Fica em 2px — marcador, não faixa. */
-.ag-evt { position: relative; border-left: 2px solid var(--brand); border-radius: 7px; padding: 7px 9px; margin-bottom: 6px; background: var(--card); border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: grab; }
+/* O status do compromisso é lido de dois jeitos: no selo, para quem lê, e na
+   cor do horário + no ponto, para quem só varre a semana com o olho. Sem
+   faixa lateral — o selo já diz a mesma coisa, em palavra. */
+.ag-evt { position: relative; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; margin-bottom: 6px; background: var(--card); cursor: grab; }
 .ag-evt:hover { background: var(--bg2); }
 .ag-evt.arrastando { opacity: .45; }
-.ag-evt .h { font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--tx3); font-family: var(--mono); }
+.ag-evt .h { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-family: var(--mono); }
+.ag-evt .h .pt { width: 6px; height: 6px; border-radius: 50%; flex: none; background: currentColor; }
 .ag-evt .t { font-size: 13px; line-height: 1.35; margin-top: 1px; }
 .ag-evt .op { font-size: 11px; color: var(--tx2); margin-top: 3px; }
 /* Prazo de edital não é compromisso digitado: vem do dado e não se arrasta. */
-.ag-evt.prazo { cursor: default; border-left-color: var(--danger); background: color-mix(in srgb, var(--danger) 7%, transparent); }
+.ag-evt.prazo { cursor: default; border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); background: color-mix(in srgb, var(--danger) 7%, transparent); }
+.ag-evt.prazo .h { color: var(--danger); }
 .ag-vazio { font-size: 12px; color: var(--tx3); padding: 4px 4px 6px; }
