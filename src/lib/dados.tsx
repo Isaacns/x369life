@@ -91,7 +91,8 @@ export function DadosProvider({ children }: { children: ReactNode }) {
       .eq('ativo', true).limit(1)
     if (error) { setErro(msg(error)); return null }
     const linha = data?.[0] as unknown as
-      { org_id: string; role: string; organizations: { nome: string } | { nome: string }[] | null } | undefined
+      { org_id: string; role: string
+        organizations: { nome: string } | { nome: string }[] | null } | undefined
     if (!linha) { setOrgId(null); setOrgNome(null); setSemOrg(true); return null }
     const org = Array.isArray(linha.organizations) ? linha.organizations[0] : linha.organizations
     setOrgId(linha.org_id); setOrgNome(org?.nome ?? null); setSemOrg(false)
@@ -101,10 +102,17 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     // que é exatamente o que a policy no banco já concede.
     // A policy pa_sel só devolve linha para quem é admin de plataforma:
     // para os demais a consulta volta vazia, sem erro.
-    const [{ data: pa }, { data: perfilLinha }] = await Promise.all([
+    const [{ data: pa }, { data: perfilLinha }, ajuste] = await Promise.all([
       x.from('platform_admins').select('user_id').limit(1),
       x.from('profiles').select('nome, foto_url, tratamento')
         .eq('id', usuarioRef.current?.id ?? '').maybeSingle(),
+      // Consulta à parte, e tolerante: `permissoes` é coluna recente. Se o
+      // banco ainda não a tem, o sistema entra sem ajuste fino em vez de não
+      // entrar — o teto do perfil continua valendo, que é a trava real.
+      x.from('memberships').select('permissoes')
+        .eq('org_id', linha.org_id).eq('user_id', usuarioRef.current?.id ?? '')
+        .maybeSingle()
+        .then((r) => (r.error ? null : (r.data?.permissoes as Usuario['permissoes']) ?? null)),
     ])
     const papel = (pa && pa.length > 0) ? 'owner' : linha.role
     atualizarUsuarioRef.current?.({
@@ -112,6 +120,8 @@ export function DadosProvider({ children }: { children: ReactNode }) {
       ...(perfilLinha?.nome ? { nome: perfilLinha.nome as string } : {}),
       fotoUrl: (perfilLinha?.foto_url as string | null) ?? undefined,
       tratamento: (perfilLinha?.tratamento as string | undefined) ?? 'neutro',
+      // Admin de plataforma entra como owner: acesso total, sem ajuste fino.
+      permissoes: papel === 'owner' ? null : ajuste,
     })
     return linha.org_id
   }, [])
@@ -139,6 +149,15 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     if (ops.error) { setErro(msg(ops.error)); return }
     setOportunidades((ops.data ?? []).map((l) => paraOportunidade(l as never, pesosAtivos)))
 
+    // Ajuste fino por pessoa, à parte e tolerante (ver carregarOrg).
+    const ajustes = new Map<string, Usuario['permissoes']>()
+    const rAj = await x.from('memberships').select('user_id, permissoes').eq('org_id', org)
+    if (!rAj.error) {
+      for (const l of rAj.data ?? []) {
+        ajustes.set(String(l.user_id), l.permissoes as Usuario['permissoes'])
+      }
+    }
+
     if (!membros.error) {
       setUsuarios((membros.data ?? []).map((m) => {
         const p = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as
@@ -147,6 +166,7 @@ export function DadosProvider({ children }: { children: ReactNode }) {
           id: p?.id ?? '', nome: p?.nome ?? '—', email: p?.email ?? '—',
           perfil: m.role as string, ativo: m.ativo as boolean,
           fotoUrl: p?.foto_url ?? undefined,
+          permissoes: ajustes.get(p?.id ?? '') ?? null,
         }
       }).filter((u) => u.id))
     }
@@ -296,8 +316,21 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     const existente = usuarios.some((v) => v.id === u.id)
     if (existente) {
       const { error } = await x.from('memberships')
-        .update({ role: u.perfil, ativo: u.ativo }).eq('org_id', orgId).eq('user_id', u.id)
-      if (error) return msg(error)
+        .update({ role: u.perfil, ativo: u.ativo, permissoes: u.permissoes ?? null })
+        .eq('org_id', orgId).eq('user_id', u.id)
+      if (error) {
+        // Banco sem a coluna de ajuste fino: grava o que existe e avisa, em vez
+        // de perder também a troca de perfil.
+        if (/permissoes/i.test(error.message)) {
+          const r2 = await x.from('memberships')
+            .update({ role: u.perfil, ativo: u.ativo })
+            .eq('org_id', orgId).eq('user_id', u.id)
+          if (r2.error) return msg(r2.error)
+          await recarregar()
+          return 'Perfil salvo. O ajuste por módulo ainda não foi provisionado no banco.'
+        }
+        return msg(error)
+      }
     } else {
       // Só vincula quem já tem conta — o cadastro público está desativado
       // no vizio-core de propósito. A RPC devolve mensagem clara se não existir.

@@ -161,6 +161,8 @@ export interface Usuario {
   fotoUrl?: string
   /** Flexão de gênero escolhida pela pessoa. Só afeta texto. */
   tratamento?: string
+  /** Ajuste fino Ver/Editar por módulo. Só restringe — ver lib/permissoes.ts. */
+  permissoes?: Partial<Record<string, { v: boolean; e: boolean }>> | null
 }
 
 export interface PerfilOrganizacao {

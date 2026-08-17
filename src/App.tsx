@@ -1,7 +1,8 @@
 import { useEffect, useState, type JSX } from 'react'
-import { APP, MODO_DEMO, NAV, PERFIS, type NavId, type Perfil } from './app.config'
+import { APP, MODO_DEMO, NAV, PERFIS, podeAdministrar, type NavId, type Perfil } from './app.config'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { DadosProvider, useDados } from './lib/dados'
+import { MODULOS, podeVerModulo } from './lib/permissoes'
 import { Carregando, ToastHost } from './ui/kit'
 import { TemaProvider, useTema } from './ui/tema'
 import { NavegacaoProvider, useNavegacao } from './ui/navegacao'
@@ -16,17 +17,25 @@ import Visao from './screens/Visao'
 import Executivo from './screens/Executivo'
 import Oportunidades from './screens/Oportunidades'
 import Pipeline from './screens/Pipeline'
+import Agenda from './screens/Agenda'
 import Relatorios from './screens/Relatorios'
 import Inteligencia from './screens/Inteligencia'
 import Fontes from './screens/Fontes'
+import Mercados from './screens/Mercados'
+import Legislacao from './screens/Legislacao'
+import Produtos from './screens/Produtos'
+import Comparador from './screens/Comparador'
+import Organizacoes from './screens/Organizacoes'
 import Usuarios from './screens/Usuarios'
 import Config from './screens/Config'
 import EmBreve from './screens/EmBreve'
 
 const TELAS: Partial<Record<NavId, () => JSX.Element>> = {
-  visao: Visao, executivo: Executivo, oportunidades: Oportunidades, pipeline: Pipeline,
+  visao: Visao, executivo: Executivo, oportunidades: Oportunidades, pipeline: Pipeline, agenda: Agenda,
   relatorios: Relatorios, inteligencia: Inteligencia, fontes: Fontes,
-  usuarios: Usuarios, config: Config,
+  mercados: Mercados, legislacao: Legislacao,
+  produtos: Produtos, comparador: Comparador,
+  organizacoes: Organizacoes, usuarios: Usuarios, config: Config,
 }
 
 function Shell() {
@@ -39,7 +48,15 @@ function Shell() {
   const item = NAV.find((n) => n.id === view)
   const Tela = TELAS[view] ?? (() => <EmBreve titulo={item?.label ?? ''} />)
   const perfil = (usuario?.perfil ?? 'visualizador') as Perfil
-  const grupos = [...new Set(NAV.map((n) => n.grupo))]
+
+  // Módulo sem permissão não aparece no menu. `usuarios` e `config` não entram
+  // na matriz — quem decide neles é o próprio perfil (§8 dos padrões VIZIO).
+  const comAjuste = new Set(MODULOS.map((m) => m.id))
+  const visiveis = NAV.filter((n) => (comAjuste.has(n.id)
+    ? podeVerModulo(perfil, usuario?.permissoes, n.id)
+    : n.id === 'usuarios' || n.id === 'config' || n.id === 'organizacoes'
+      ? podeAdministrar(perfil) : true))
+  const grupos = [...new Set(visiveis.map((n) => n.grupo))]
 
   function navegar(id: NavId) { ir(id); setMenuAberto(false) }
 
@@ -56,7 +73,7 @@ function Shell() {
           {grupos.map((g) => (
             <div key={g}>
               <div className="grupo">{g}</div>
-              {NAV.filter((n) => n.grupo === g).map((n) => (
+              {visiveis.filter((n) => n.grupo === g).map((n) => (
                 <button key={n.id} className={'x-nav' + (view === n.id ? ' on' : '')} onClick={() => navegar(n.id)}>
                   <span className="ic" aria-hidden>{n.icone}</span>
                   {n.label}

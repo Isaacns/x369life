@@ -45,7 +45,7 @@ export const IA = {
 
 /* ---- Navegação principal (§8 do briefing) ---- */
 export type NavId =
-  | 'visao' | 'executivo' | 'oportunidades' | 'pipeline' | 'relatorios'
+  | 'visao' | 'executivo' | 'oportunidades' | 'pipeline' | 'agenda' | 'relatorios'
   | 'inteligencia' | 'fontes' | 'mercados' | 'legislacao'
   | 'produtos' | 'comparador'
   | 'organizacoes' | 'usuarios' | 'config'
@@ -57,14 +57,15 @@ export const NAV: NavItem[] = [
   { id: 'executivo',     icone: '▲', label: 'Painel executivo',  grupo: 'Decisão',    pronto: true },
   { id: 'oportunidades', icone: '◎', label: 'Oportunidades',     grupo: 'Decisão',    pronto: true },
   { id: 'pipeline',      icone: '▤', label: 'Pipeline',          grupo: 'Decisão',    pronto: true },
+  { id: 'agenda',        icone: '▣', label: 'Agenda',            grupo: 'Decisão',    pronto: true },
   { id: 'relatorios',    icone: '▦', label: 'Relatórios',        grupo: 'Decisão',    pronto: true },
   { id: 'inteligencia',  icone: '◇', label: 'Inteligência',      grupo: 'Inteligência', pronto: true },
   { id: 'fontes',        icone: '⌖', label: 'Fontes',            grupo: 'Inteligência', pronto: true },
-  { id: 'mercados',      icone: '◐', label: 'Mercados e países', grupo: 'Inteligência', pronto: false },
-  { id: 'legislacao',    icone: '§', label: 'Legislação',        grupo: 'Inteligência', pronto: false },
-  { id: 'produtos',      icone: '◍', label: 'Produtos',          grupo: 'Catálogo',   pronto: false },
-  { id: 'comparador',    icone: '⇄', label: 'Comparador',        grupo: 'Catálogo',   pronto: false },
-  { id: 'organizacoes',  icone: '◫', label: 'Organizações',      grupo: 'Administração', pronto: false },
+  { id: 'mercados',      icone: '◐', label: 'Mercados e países', grupo: 'Inteligência', pronto: true },
+  { id: 'legislacao',    icone: '§', label: 'Legislação',        grupo: 'Inteligência', pronto: true },
+  { id: 'produtos',      icone: '◍', label: 'Produtos',          grupo: 'Catálogo',   pronto: true },
+  { id: 'comparador',    icone: '⇄', label: 'Comparador',        grupo: 'Catálogo',   pronto: true },
+  { id: 'organizacoes',  icone: '◫', label: 'Organizações',      grupo: 'Administração', pronto: true },
   { id: 'usuarios',      icone: '◉', label: 'Usuários',          grupo: 'Administração', pronto: true },
   { id: 'config',        icone: '⚙', label: 'Configurações',     grupo: 'Administração', pronto: true },
 ]
