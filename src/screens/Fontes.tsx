@@ -84,8 +84,19 @@ export default function Fontes() {
               {[...FONTES].sort((a, b) => a.prioridade - b.prioridade).map((f) => (
                 <tr key={f.id} onClick={() => setDetalhe(detalhe?.id === f.id ? null : f)}>
                   <td data-l="Fonte">
-                    <b style={{ fontWeight: 600, display: 'block', lineHeight: 1.35 }}>{f.nome}</b>
-                    <span style={{ fontSize: 11.5, color: 'var(--tx3)' }}>{f.organizacao}</span>
+                    {/* O endereço estava escondido atrás de um clique na linha.
+                        O nome sendo o link poupa esse passo e deixa claro que
+                        a fonte existe fora do sistema. */}
+                    {f.url ? (
+                      <a className="link-ext" href={f.url} target="_blank" rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ fontWeight: 600, display: 'inline-block', lineHeight: 1.35 }}>
+                        {f.nome}
+                      </a>
+                    ) : (
+                      <b style={{ fontWeight: 600, display: 'block', lineHeight: 1.35 }}>{f.nome}</b>
+                    )}
+                    <span style={{ fontSize: 11.5, color: 'var(--tx3)', display: 'block' }}>{f.organizacao}</span>
                   </td>
                   <td data-l="Abrangência" style={{ color: 'var(--tx2)' }}>{f.abrangencia}</td>
                   <td data-l="Tipo" style={{ fontSize: 12, color: 'var(--tx2)' }}>{ROTULO_TIPO[f.tipo]}</td>
@@ -114,8 +125,8 @@ export default function Fontes() {
             {ROTULO_ESTADO[detalhe.estado].explica}
           </p>
           {detalhe.url && (
-            <a href={detalhe.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>
-              {detalhe.url} ↗
+            <a className="link-ext" href={detalhe.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13 }}>
+              {detalhe.url}
             </a>
           )}
         </div>

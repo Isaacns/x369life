@@ -71,10 +71,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function aplicarSessao(email: string | null, id: string | null, nome: string | null) {
     if (!email || !id) { setUsuario(null); return }
-    // O papel real vem do RBAC no banco (memberships / platform_admins) e é
-    // empurrado por `dados.tsx` assim que a organização carrega. Até lá vale o
-    // perfil MÍNIMO — §13.1 dos padrões VIZIO: nunca supor privilégio.
-    setUsuario({ id, nome: nome ?? email.split('@')[0], email, perfil: 'visualizador', ativo: true })
+    setUsuario((anterior) => {
+      // Mesma pessoa: PRESERVA o que o RBAC já resolveu.
+      //
+      // Antes isto reconstruía o usuário do zero a cada evento de auth — e o
+      // Supabase dispara um em INITIAL_SESSION e a cada renovação de token.
+      // O papel que `dados.tsx` tinha empurrado (admin, owner) era apagado
+      // segundos depois e a pessoa voltava a "Visualizador" sem nada ter
+      // mudado no banco. `dados.tsx` não reagia: as dependências do efeito
+      // dele não mudam com refresh de token.
+      if (anterior && anterior.id === id) {
+        return { ...anterior, email, nome: anterior.nome || nome || email.split('@')[0] }
+      }
+      // Pessoa nova na sessão: perfil MÍNIMO até o RBAC responder —
+      // §13.1 dos padrões VIZIO, nunca supor privilégio.
+      return { id, nome: nome ?? email.split('@')[0], email, perfil: 'visualizador', ativo: true }
+    })
   }
 
   const valor: Estado = {

@@ -113,9 +113,17 @@ export default function Legislacao() {
             return (
               <div key={n.id} className="card" style={{ padding: '14px 16px' }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                  <b style={{ fontSize: 14.5, fontWeight: 700, color: n.situacao === 'revogada' ? 'var(--danger)' : undefined }}>
-                    {n.identificacao}
-                  </b>
+                  {n.url ? (
+                    <a className="link-ext" href={n.url} target="_blank" rel="noopener noreferrer"
+                      title={`Abrir o texto oficial de ${n.identificacao}`}
+                      style={{ fontSize: 14.5, fontWeight: 700 }}>
+                      {n.identificacao}
+                    </a>
+                  ) : (
+                    <b style={{ fontSize: 14.5, fontWeight: 700, color: n.situacao === 'revogada' ? 'var(--danger)' : undefined }}>
+                      {n.identificacao}
+                    </b>
+                  )}
                   <span style={{ fontSize: 12, color: 'var(--tx2)' }}>{TIPO[n.tipo]}</span>
                   <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <Badge cor={sit.cor}>{sit.label}</Badge>
@@ -131,9 +139,10 @@ export default function Legislacao() {
                 <div style={{ fontSize: 11, color: 'var(--tx3)', marginTop: 8, fontFamily: 'var(--mono)' }}>
                   {[n.orgao, n.ano ? String(n.ano) : null].filter(Boolean).join(' · ')}
                   {n.url
-                    ? <> · <a href={n.url} target="_blank" rel="noreferrer">texto oficial</a></>
-                    : <> · link a conferir</>}
-                  {!n.conferidoEm && <> · <span style={{ color: 'var(--amber)' }}>não conferido por ninguém ainda</span></>}
+                    ? <> · <span style={{ color: 'var(--teal)' }}>link conferido</span></>
+                    : n.tipo === 'norma_tecnica'
+                      ? <> · <span title="Normas ABNT são publicações pagas: não há texto oficial de acesso livre para linkar.">sem texto público</span></>
+                      : <> · <span style={{ color: 'var(--amber)' }}>link a conferir</span></>}
                 </div>
               </div>
             )
@@ -142,9 +151,10 @@ export default function Legislacao() {
       )}
 
       <p style={{ fontSize: 11.5, color: 'var(--tx3)', margin: '14px 0 0', lineHeight: 1.55 }}>
-        Nenhum link foi preenchido automaticamente. Endereço errado com cara de fonte oficial é pior
-        que endereço ausente — leva a pessoa ao lugar errado com confiança. O texto oficial entra
-        quando alguém abrir a norma e confirmar.
+        Clique no número da norma para abrir o texto oficial. <b>Só há link onde ele foi aberto e
+        conferido</b> — endereço errado com cara de fonte oficial é pior que endereço ausente.
+        As normas técnicas da ABNT não têm link porque são publicações pagas, sem texto oficial
+        de acesso livre.
       </p>
     </>
   )
