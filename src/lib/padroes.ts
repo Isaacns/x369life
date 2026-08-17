@@ -224,7 +224,10 @@ export function cruzarPadroes(linhas: Linha[], perfil: PerfilOrganizacao): Achad
   /* ---------- 7. Padrão de vitória (só com amostra suficiente) ---------- */
   const ganhas = linhas.filter(({ o }) => o.etapa === 'vencida')
   const perdidas = linhas.filter(({ o }) => o.etapa === 'perdida')
-  if (ganhas.length + perdidas.length >= 5) {
+  // Cinco no TOTAL não bastava: 5 vitórias e 0 derrotas passavam pela guarda,
+  // e a média das perdidas virava 0 pelo `|| 1` — o sistema anunciava uma
+  // diferença de 78 pontos contra um grupo que não existe.
+  if (ganhas.length >= 3 && perdidas.length >= 3) {
     const med = (ls: Linha[]) => ls.reduce((s, l) => s + l.a.aderencia.nota, 0) / (ls.length || 1)
     const dif = med(ganhas) - med(perdidas)
     achados.push({

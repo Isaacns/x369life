@@ -4,17 +4,20 @@ import { useAuth } from '../auth/AuthContext'
 import { useDados } from '../lib/dados'
 import { estadoIA } from '../lib/ia'
 import { PESOS_ADERENCIA_PADRAO, ROTULOS_ADERENCIA } from '../lib/scoring'
-import { Badge, Barra, FaixaDemo, useToast } from '../ui/kit'
+import { PAISES } from '../lib/demo'
+import type { PerfilOrganizacao } from '../lib/tipos'
+import { Badge, Barra, Campo, FaixaDemo, Modal, Rodape, useToast } from '../ui/kit'
 import { useTema } from '../ui/tema'
 
 export default function Config() {
-  const { pesos, setPesos, perfilOrg } = useDados()
+  const { pesos, setPesos, perfilOrg, salvarPerfilOrg } = useDados()
   const { usuario } = useAuth()
   const { tema, alternar } = useTema()
   const toast = useToast()
   const ia = estadoIA()
   const admin = podeAdministrar((usuario?.perfil ?? null) as Perfil | null)
 
+  const [editandoPerfil, setEditandoPerfil] = useState(false)
   const [rascunho, setRascunho] = useState<Record<string, number>>(pesos)
   const soma = Object.values(rascunho).reduce((s, v) => s + v, 0)
   const alterado = JSON.stringify(rascunho) !== JSON.stringify(pesos)
@@ -106,13 +109,41 @@ export default function Config() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 14, fontSize: 13 }}>
           <Info rotulo="Organização" valor={perfilOrg.nome} />
-          <Info rotulo="Tipo" valor={perfilOrg.tipo} />
           <Info rotulo="Produtos" valor={perfilOrg.produtos.join(', ')} />
           <Info rotulo="Certificações" valor={perfilOrg.certificacoes.join(', ')} />
-          <Info rotulo="Capacidade" valor={perfilOrg.capacidadeMensal} />
-          <Info rotulo="Histórico" valor={`${perfilOrg.historicoVitorias} vitórias em ${perfilOrg.historicoPropostas} propostas`} />
+          <Info rotulo="Países de interesse" valor={perfilOrg.paisesInteresse
+            .map((id) => PAISES.find((x) => x.id === id)?.nome ?? id).join(', ')} />
+          <Info rotulo="Capacidade mensal" valor={perfilOrg.capacidadeMensal} />
+          <Info rotulo="Histórico" valor={perfilOrg.historicoPropostas
+            ? `${perfilOrg.historicoVitorias} vitórias em ${perfilOrg.historicoPropostas} propostas`
+            : ''} />
         </div>
+
+        {admin && (
+          <button className="b" style={{ marginTop: 14 }} onClick={() => setEditandoPerfil(true)}>
+            Editar perfil da organização
+          </button>
+        )}
+        <p style={{ fontSize: 11.5, color: 'var(--tx3)', margin: '12px 0 0', lineHeight: 1.55 }}>
+          Campo em branco aqui vira <b>critério sem dado</b> na aderência de todo edital — derruba a
+          confiança da nota, não a nota. É por isso que o sistema mostra a lacuna em vez de assumir zero.
+        </p>
       </div>
+
+      {editandoPerfil && (
+        <FichaPerfilOrg
+          perfil={perfilOrg}
+          onFechar={() => setEditandoPerfil(false)}
+          onSalvar={async (p) => {
+            try {
+              await salvarPerfilOrg(p)
+              setEditandoPerfil(false)
+              toast('Perfil da organização atualizado. As notas foram recalculadas.')
+            } catch (e) {
+              toast('Não consegui salvar: ' + ((e as { message?: string }).message ?? 'falha'), true)
+            }
+          }} />
+      )}
 
       {/* ---------- aparência e versão ---------- */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 14 }}>
@@ -147,5 +178,112 @@ function Info({ rotulo, valor }: { rotulo: string; valor: string }) {
       <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--tx3)', fontWeight: 600, marginBottom: 2 }}>{rotulo}</div>
       <div style={{ lineHeight: 1.45 }}>{valor}</div>
     </div>
+  )
+}
+
+/* ============================================================
+   Ficha do perfil da organização.
+   É o retrato da empresa contra o qual cada edital é comparado. Lista vazia
+   aqui não é zero na nota — é critério sem dado, e a nota vem com menos
+   confiança. Por isso os campos nascem vazios em vez de com valor plausível.
+   ============================================================ */
+function FichaPerfilOrg({ perfil, onFechar, onSalvar }: {
+  perfil: PerfilOrganizacao
+  onFechar: () => void
+  onSalvar: (p: PerfilOrganizacao) => void | Promise<void>
+}) {
+  const [produtos, setProdutos] = useState(perfil.produtos.join(', '))
+  const [certificacoes, setCertificacoes] = useState(perfil.certificacoes.join(', '))
+  const [paises, setPaises] = useState<string[]>(perfil.paisesInteresse)
+  const [paisOrigem, setPaisOrigem] = useState(perfil.paisOrigem)
+  const [capacidade, setCapacidade] = useState(perfil.capacidadeMensal === '—' ? '' : perfil.capacidadeMensal)
+  const [faixaMin, setFaixaMin] = useState(perfil.faixaMin || 0)
+  const [faixaMax, setFaixaMax] = useState(perfil.faixaMax || 0)
+  const [propostas, setPropostas] = useState(perfil.historicoPropostas)
+  const [vitorias, setVitorias] = useState(perfil.historicoVitorias)
+  const [ocupado, setOcupado] = useState(false)
+
+  const lista = (t: string) => t.split(',').map((x) => x.trim()).filter(Boolean)
+  const faixaOk = faixaMax === 0 || faixaMax >= faixaMin
+  const historicoOk = vitorias <= propostas
+  const valido = faixaOk && historicoOk
+
+  return (
+    <Modal titulo="Perfil da organização" largura={600} onFechar={onFechar}>
+      <Campo label="Produtos que a empresa oferece"
+        dica="Separe por vírgula. É o que o sistema compara com o objeto de cada edital.">
+        <input className="inp" value={produtos} autoFocus onChange={(e) => setProdutos(e.target.value)}
+          placeholder="Luminária LED viária, Telegestão, Poste" />
+      </Campo>
+
+      <Campo label="Certificações" dica="Separe por vírgula. Ex.: INMETRO, ISO 9001, CE">
+        <input className="inp" value={certificacoes} onChange={(e) => setCertificacoes(e.target.value)} />
+      </Campo>
+
+      <Campo label="País de origem">
+        <select className="inp" value={paisOrigem} onChange={(e) => setPaisOrigem(e.target.value)}>
+          {PAISES.map((p) => <option key={p.id} value={p.id}>{p.bandeira} {p.nome}</option>)}
+        </select>
+      </Campo>
+
+      <div className="fld">
+        <span>Países de interesse</span>
+        <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 4 }}>
+          {PAISES.map((p) => {
+            const on = paises.includes(p.id)
+            return (
+              <button key={p.id} type="button" className={'chip' + (on ? ' on' : '')} aria-pressed={on}
+                onClick={() => setPaises((s) => on ? s.filter((x) => x !== p.id) : [...s, p.id])}>
+                {p.bandeira} {p.nome}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <Campo label="Capacidade mensal" dica="Como a equipe fala dela. Ex.: 12.000 luminárias/mês">
+        <input className="inp" value={capacidade} onChange={(e) => setCapacidade(e.target.value)} />
+      </Campo>
+
+      <div className="grade-2">
+        <Campo label="Contrato mínimo que interessa">
+          <input className="inp" type="number" value={faixaMin || ''}
+            onChange={(e) => setFaixaMin(Number(e.target.value) || 0)} />
+        </Campo>
+        <Campo label="Contrato máximo que a empresa entrega"
+          dica={faixaOk ? undefined : 'O máximo precisa ser maior que o mínimo.'}>
+          <input className="inp" type="number" value={faixaMax || ''}
+            onChange={(e) => setFaixaMax(Number(e.target.value) || 0)} />
+        </Campo>
+      </div>
+
+      <div className="grade-2">
+        <Campo label="Propostas já enviadas" dica="A partir de 3, o histórico entra no cálculo de probabilidade.">
+          <input className="inp" type="number" min={0} value={propostas}
+            onChange={(e) => setPropostas(Math.max(0, Number(e.target.value) || 0))} />
+        </Campo>
+        <Campo label="Vitórias" dica={historicoOk ? undefined : 'Não pode haver mais vitórias que propostas.'}>
+          <input className="inp" type="number" min={0} value={vitorias}
+            onChange={(e) => setVitorias(Math.max(0, Number(e.target.value) || 0))} />
+        </Campo>
+      </div>
+
+      <Rodape>
+        <button className="b-ghost" onClick={onFechar}>Cancelar</button>
+        <button className="b" disabled={!valido || ocupado} onClick={() => {
+          setOcupado(true)
+          void Promise.resolve(onSalvar({
+            ...perfil,
+            paisOrigem,
+            paisesInteresse: paises,
+            produtos: lista(produtos),
+            certificacoes: lista(certificacoes),
+            capacidadeMensal: capacidade.trim() || '—',
+            faixaMin, faixaMax,
+            historicoPropostas: propostas, historicoVitorias: vitorias,
+          })).finally(() => setOcupado(false))
+        }}>{ocupado ? 'Salvando…' : 'Salvar'}</button>
+      </Rodape>
+    </Modal>
   )
 }

@@ -5,10 +5,17 @@ import { PERFIS, type NavId, type Perfil } from '../app.config'
    por pessoa), com uma trava a mais.
 
    O perfil define o TETO. O ajuste por pessoa só consegue tirar, nunca pôr.
-   A razão é honestidade: quem trava de verdade é a RLS por perfil no banco.
-   Se a tela liberasse acima do perfil, prometeria um acesso que o servidor
-   negaria — e o usuário veria um erro em vez de um limite. Restringir na
-   tela é seguro; liberar seria mentira.
+
+   Isto agora é verdade nos dois lados. A migração `0010_leitura_por_perfil`
+   levou a trava para o banco no que é sensível — viabilidade financeira,
+   decisões registradas, riscos, SWOT, PESTEL e agenda passaram a exigir
+   papel, não só pertencimento. Antes disso, um `fornecedor` recebia a margem
+   de cada oportunidade no navegador mesmo com a tela fechada para ele.
+
+   O que continua valendo só na tela é a restrição ABAIXO desse teto: se um
+   administrador tira "Editar" de alguém que o perfil permitiria, a RLS ainda
+   deixaria passar. Por isso o ajuste só restringe — liberar acima seria
+   prometer um acesso que o servidor negaria.
    ============================================================ */
 
 export interface Modulo { id: NavId; nome: string }

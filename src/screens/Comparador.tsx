@@ -5,6 +5,7 @@ import {
   AVISO_NAO_PROVISIONADO, TITULO_NAO_PROVISIONADO, eficaciaDerivada, listarProdutos, moduloNaoProvisionado, type Produto,
 } from '../lib/catalogo'
 import { moeda as fmtMoeda } from '../lib/formato'
+import { lerMedida, type Unidade } from '../lib/medida'
 import { Carregando, Erro, NaoDisponivel, Vazio } from '../ui/kit'
 import { FaixaSemBanco } from './Produtos'
 
@@ -32,26 +33,35 @@ interface Criterio {
   valor: (p: Produto) => number | null
   /** Termos que identificam o campo na extração do edital. */
   chaves: string[]
+  /** Termos que DESQUALIFICAM o campo mesmo casando com uma chave.
+      "Fator de potência" casa com "potência" e é outra grandeza inteiramente:
+      comparar 150 W contra 0,92 marcava ✕ em todos os produtos. */
+  excecoes?: string[]
+  unidadeLeitura: Unidade
   /** Como o edital costuma cobrar: mínimo, máximo ou igualdade. */
   exigencia: 'minimo' | 'maximo'
 }
 
 const CRITERIOS: Criterio[] = [
-  { id: 'potencia', label: 'Potência', unidade: 'W', melhor: 'menor', valor: (p) => p.potenciaW, chaves: ['potência', 'potencia', 'watt'], exigencia: 'maximo' },
-  { id: 'fluxo', label: 'Fluxo luminoso', unidade: 'lm', melhor: 'maior', valor: (p) => p.fluxoLm, chaves: ['fluxo', 'lúmen', 'lumen'], exigencia: 'minimo' },
-  { id: 'eficacia', label: 'Eficácia', unidade: 'lm/W', melhor: 'maior', valor: (p) => p.eficaciaLmW ?? eficaciaDerivada(p), chaves: ['eficácia', 'eficacia', 'lm/w'], exigencia: 'minimo' },
-  { id: 'temperatura', label: 'Temperatura de cor', unidade: 'K', melhor: 'maior', valor: (p) => p.temperaturaK, chaves: ['temperatura de cor', 'kelvin'], exigencia: 'minimo' },
-  { id: 'irc', label: 'IRC', unidade: '', melhor: 'maior', valor: (p) => p.irc, chaves: ['irc', 'reprodução de cor'], exigencia: 'minimo' },
-  { id: 'vida', label: 'Vida útil', unidade: 'h', melhor: 'maior', valor: (p) => p.vidaUtilH, chaves: ['vida útil', 'vida util', 'l70', 'l80'], exigencia: 'minimo' },
-  { id: 'garantia', label: 'Garantia', unidade: 'meses', melhor: 'maior', valor: (p) => p.garantiaMeses, chaves: ['garantia'], exigencia: 'minimo' },
-  { id: 'capacidade', label: 'Capacidade mensal', unidade: 'un.', melhor: 'maior', valor: (p) => p.capacidadeMensal, chaves: ['capacidade', 'prazo de entrega'], exigencia: 'minimo' },
+  { id: 'potencia', label: 'Potência', unidade: 'W', unidadeLeitura: 'W', melhor: 'menor', valor: (p) => p.potenciaW,
+    chaves: ['potência', 'potencia', 'watt'], excecoes: ['fator de potência', 'fator de potencia'], exigencia: 'maximo' },
+  { id: 'fluxo', label: 'Fluxo luminoso', unidade: 'lm', unidadeLeitura: 'lm', melhor: 'maior', valor: (p) => p.fluxoLm,
+    chaves: ['fluxo', 'lúmen', 'lumen'], exigencia: 'minimo' },
+  { id: 'eficacia', label: 'Eficácia', unidade: 'lm/W', unidadeLeitura: 'lm/W', melhor: 'maior', valor: (p) => p.eficaciaLmW ?? eficaciaDerivada(p),
+    chaves: ['eficácia', 'eficacia', 'lm/w'], exigencia: 'minimo' },
+  { id: 'temperatura', label: 'Temperatura de cor', unidade: 'K', unidadeLeitura: 'K', melhor: 'maior', valor: (p) => p.temperaturaK,
+    chaves: ['temperatura de cor', 'kelvin'], exigencia: 'minimo' },
+  { id: 'irc', label: 'IRC', unidade: '', unidadeLeitura: '', melhor: 'maior', valor: (p) => p.irc,
+    chaves: ['irc', 'reprodução de cor'], exigencia: 'minimo' },
+  { id: 'vida', label: 'Vida útil', unidade: 'h', unidadeLeitura: 'h', melhor: 'maior', valor: (p) => p.vidaUtilH,
+    chaves: ['vida útil', 'vida util', 'l70', 'l80'], exigencia: 'minimo' },
+  { id: 'garantia', label: 'Garantia', unidade: 'meses', unidadeLeitura: 'meses', melhor: 'maior', valor: (p) => p.garantiaMeses,
+    chaves: ['garantia'], exigencia: 'minimo' },
+  // A chave "prazo de entrega" saiu: é grandeza em dias, e comparar dias
+  // contra unidades por mês marcava ✕ ou ✓ sem sentido.
+  { id: 'capacidade', label: 'Capacidade mensal', unidade: 'un.', unidadeLeitura: 'un.', melhor: 'maior', valor: (p) => p.capacidadeMensal,
+    chaves: ['capacidade mensal', 'capacidade de fornecimento'], exigencia: 'minimo' },
 ]
-
-/** Extrai o primeiro número de um texto livre ("mínimo de 130 lm/W" → 130). */
-function numeroDe(texto: string): number | null {
-  const m = texto.replace(/\./g, '').replace(',', '.').match(/(\d+(?:\.\d+)?)/)
-  return m ? Number(m[1]) : null
-}
 
 export default function Comparador() {
   const { orgId, oportunidades } = useDados()
@@ -85,13 +95,16 @@ export default function Comparador() {
     const mapa = new Map<string, { valor: number; texto: string; documento: string; pagina: number }>()
     if (!oportunidade) return mapa
     for (const c of CRITERIOS) {
-      const achado = oportunidade.camposExtraidos.find((ce) =>
-        c.chaves.some((k) => ce.campo.toLowerCase().includes(k)))
+      const achado = oportunidade.camposExtraidos.find((ce) => {
+        const campo = ce.campo.toLowerCase()
+        if (c.excecoes?.some((x) => campo.includes(x))) return false
+        return c.chaves.some((k) => campo.includes(k))
+      })
       if (!achado) continue
-      const v = numeroDe(achado.valor)
-      if (v === null) continue
+      const medida = lerMedida(achado.valor, c.unidadeLeitura)
+      if (medida === null) continue          // ambíguo → "não extraído", não chute
       mapa.set(c.id, {
-        valor: v, texto: achado.valor,
+        valor: medida.valor, texto: achado.valor,
         documento: achado.evidencia.documento, pagina: achado.evidencia.pagina,
       })
     }

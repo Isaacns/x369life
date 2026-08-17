@@ -128,9 +128,9 @@ export default function Usuarios() {
       )}
 
       <p style={{ fontSize: 11.5, color: 'var(--tx3)', margin: '0 0 16px', lineHeight: 1.55 }}>
-        O ajuste por módulo <b>restringe</b> o que o perfil já concede — nunca amplia. Quem trava de
-        verdade é a RLS por perfil no banco, e a tela não promete acesso que o servidor negaria.
-        Perfis de nível 90 ou mais têm acesso total e não recebem matriz.
+        O ajuste por módulo <b>restringe</b> o que o perfil já concede — nunca amplia. No que é
+        sensível (viabilidade financeira, decisões, riscos e agenda) quem trava é a RLS por perfil no
+        banco, não a tela. Perfis de nível 90 ou mais têm acesso total e não recebem matriz.
       </p>
 
       {(editando || novo) && (

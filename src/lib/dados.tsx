@@ -31,6 +31,7 @@ interface Estado {
   pesos: Record<string, number>
 
   setPesos: (p: Record<string, number>) => Promise<void>
+  salvarPerfilOrg: (p: PerfilOrganizacao) => Promise<void>
   moverEtapa: (id: string, etapa: EtapaPipeline) => Promise<void>
   registrarDecisao: (id: string, d: Decisao, justificativa: string, responsavel: string) => Promise<void>
   criarOportunidade: (n: NovaOportunidade) => Promise<string | null>
@@ -323,6 +324,30 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     await recarregar()
   }, [orgId, usuario, recarregar])
 
+  /* O perfil da organização é o que o sistema compara com cada edital. Três
+     telas mandavam "preencher em Configurações" e não havia formulário —
+     o motor de decisão dependia de um dado que a interface não coletava. */
+  const salvarPerfilOrg = useCallback(async (p: PerfilOrganizacao) => {
+    if (MODO_DEMO) { setPerfilOrg(p); return }
+    if (!orgId) throw new Error('Organização não carregada.')
+    const x = sb!.schema('x369life')
+    const { error } = await x.from('organization_profiles').upsert({
+      org_id: orgId,
+      pais_origem: p.paisOrigem,
+      paises_interesse: p.paisesInteresse,
+      produtos: p.produtos,
+      certificacoes: p.certificacoes,
+      capacidade_mensal: p.capacidadeMensal,
+      faixa_min: p.faixaMin, faixa_max: p.faixaMax,
+      moeda_padrao: p.moeda,
+      historico_propostas: p.historicoPropostas,
+      historico_vitorias: p.historicoVitorias,
+    }, { onConflict: 'org_id' })
+    if (error) throw new Error(msg(error))
+    setPerfilOrg(p)
+    await recarregar()
+  }, [orgId, recarregar])
+
   const salvarUsuario = useCallback(async (u: Usuario): Promise<string | null> => {
     if (MODO_DEMO) {
       setUsuarios((s) => {
@@ -462,10 +487,10 @@ export function DadosProvider({ children }: { children: ReactNode }) {
     recarregar,
     oportunidades, usuarios, pesos,
     perfilOrg: MODO_DEMO ? PERFIL_DEMO : { ...perfilOrg, nome: orgNome ?? perfilOrg.nome },
-    setPesos, moverEtapa, registrarDecisao, criarOportunidade,
+    setPesos, salvarPerfilOrg, moverEtapa, registrarDecisao, criarOportunidade,
     salvarUsuario, removerUsuario, semearDemonstrativos, limparDemonstrativos,
   }), [carregando, erro, orgId, orgNome, semOrg, carregarOrg, recarregar, oportunidades,
-    usuarios, pesos, perfilOrg, setPesos, moverEtapa, registrarDecisao, criarOportunidade,
+    usuarios, pesos, perfilOrg, setPesos, salvarPerfilOrg, moverEtapa, registrarDecisao, criarOportunidade,
     salvarUsuario, removerUsuario, semearDemonstrativos, limparDemonstrativos])
 
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>

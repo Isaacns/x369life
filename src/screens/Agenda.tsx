@@ -85,9 +85,12 @@ export default function Agenda() {
 
   const visiveis = quem === 'todos' ? itens : itens.filter((c) => c.responsavelId === quem)
 
-  function togglePeriodo(p: Periodo) {
+  // Chave por DIA+período: recolher a manhã de terça recolhia a manhã da
+  // semana inteira, e num dia vazio o clique não fazia nada visível.
+  function togglePeriodo(dia: string, p: Periodo) {
+    const chave = `${dia}|${p}`
     setFechados((s) => {
-      const n = { ...s, [p]: !s[p] }
+      const n = { ...s, [chave]: !s[chave] }
       try { localStorage.setItem(CHAVE_PER, JSON.stringify(n)) } catch { /* modo privado */ }
       return n
     })
@@ -165,8 +168,9 @@ export default function Agenda() {
       <div className="faixa faixa-legal" style={{ marginBottom: 14 }}>
         <span>⏰</span>
         Agora é <b>&nbsp;{PERIODOS.find((p) => p.id === agora)?.nome}</b>. Manhã, tarde e noite ficam
-        separadas — clique no título de um período para abrir ou fechar. Arraste um compromisso para
-        outro dia ou período para reagendar.
+        separadas — clique no título de um período para abrir ou fechar. No computador, arraste um
+        compromisso para outro dia ou período para reagendar; no celular, toque nele e troque a data
+        ou o período na ficha.
       </div>
 
       <div className="ag-semana">
@@ -227,7 +231,7 @@ function Dia({ data, nome, hoje, itens, prazos, agora, fechados, podeEditar, onT
   agora: Periodo
   fechados: Record<string, boolean>
   podeEditar: boolean
-  onTogglePeriodo: (p: Periodo) => void
+  onTogglePeriodo: (dia: string, p: Periodo) => void
   onAbrir: (c: Compromisso) => void
   onNovo: (p: Periodo) => void
   onSoltar: (id: string, data: string, p: Periodo) => void
@@ -253,7 +257,7 @@ function Dia({ data, nome, hoje, itens, prazos, agora, fechados, podeEditar, onT
 
       {PERIODOS.map((P) => {
         const doPeriodo = itens.filter((c) => c.periodo === P.id)
-        const fechado = !!fechados[P.id] && doPeriodo.length > 0
+        const fechado = !!fechados[`${iso(data)}|${P.id}`]
         return (
           <div key={P.id}
             className={'ag-per' + (fechado ? ' fechado' : '') + (P.id === agora ? ' agora' : '')}
@@ -264,14 +268,15 @@ function Dia({ data, nome, hoje, itens, prazos, agora, fechados, podeEditar, onT
               const id = e.dataTransfer.getData('text/plain')
               if (id) onSoltar(id, iso(data), P.id)
             }}>
-            <div className="ag-per-h" onClick={() => onTogglePeriodo(P.id)}>
+            <button type="button" className="ag-per-h" aria-expanded={!fechado}
+              onClick={() => onTogglePeriodo(iso(data), P.id)}>
               <span aria-hidden>{P.ico}</span><b>{P.nome}</b>
               <span className="n">{doPeriodo.length}</span>
-              <span style={{ color: 'var(--tx3)' }}>{fechado ? '▸' : '▾'}</span>
-            </div>
+              <span aria-hidden style={{ color: 'var(--tx3)' }}>{fechado ? '▸' : '▾'}</span>
+            </button>
             <div className="ag-per-corpo">
               {doPeriodo.length === 0 ? <div className="ag-vazio">—</div> : doPeriodo.map((c) => (
-                <div key={c.id} className="ag-evt" draggable={podeEditar}
+                <button key={c.id} type="button" className="ag-evt" draggable={podeEditar}
                   onDragStart={(e) => { e.dataTransfer.setData('text/plain', c.id); e.currentTarget.classList.add('arrastando') }}
                   onDragEnd={(e) => e.currentTarget.classList.remove('arrastando')}
                   onClick={() => onAbrir(c)}>
@@ -288,7 +293,7 @@ function Dia({ data, nome, hoje, itens, prazos, agora, fechados, podeEditar, onT
                       <span style={{ fontSize: 11, color: 'var(--tx3)' }}>{c.responsavelNome.split(' ')[0]}</span>
                     )}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
