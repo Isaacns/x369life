@@ -13,7 +13,7 @@ import type {
 export const SELECT_OPORTUNIDADE = `
   id, titulo, comprador, pais_id, tipo, produtos, valor, moeda, publicacao, prazo,
   fonte_texto, fonte_url, financiamento, exige_parceiro_local, concorrentes_estimados,
-  etapa, eh_demo, responsavel_id,
+  etapa, eh_demo, responsavel_id, fonte_externa, coletado_em,
   responsavel:profiles!opportunities_responsavel_id_fkey(nome),
   fit_components(criterio, score, nota),
   risk_items(id, categoria, descricao, probabilidade, impacto, evidencia, mitigacao),
@@ -28,6 +28,7 @@ export const SELECT_OPORTUNIDADE = `
 interface LinhaOportunidade {
   id: string; titulo: string; comprador: string; pais_id: string | null
   tipo: string | null; produtos: string[] | null; valor: string | number | null
+  fonte_externa?: string | null; coletado_em?: string | null
   moeda: Moeda; publicacao: string | null; prazo: string | null
   fonte_texto: string | null; fonte_url: string | null; financiamento: string | null
   exige_parceiro_local: boolean; concorrentes_estimados: number | null
@@ -89,6 +90,8 @@ export function paraOportunidade(
     moeda: l.moeda,
     publicacao: l.publicacao ?? '',
     prazo: (l.prazo as string | null) ?? null,
+    fonteExterna: l.fonte_externa ?? null,
+    coletadoEm: l.coletado_em ?? null,
     fonte: l.fonte_texto ?? '—',
     fonteUrl: l.fonte_url ?? undefined,
     financiamento: l.financiamento ?? '—',

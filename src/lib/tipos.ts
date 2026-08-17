@@ -135,6 +135,9 @@ export interface Oportunidade {
   prazo: string | null
   fonte: string
   fonteUrl?: string
+  /** Conector que trouxe o edital do portal oficial. Nulo = cadastro à mão. */
+  fonteExterna?: string | null
+  coletadoEm?: string | null
   financiamento: string
   exigeParceiroLocal: boolean
   etapa: EtapaPipeline

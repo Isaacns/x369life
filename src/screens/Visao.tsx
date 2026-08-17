@@ -11,6 +11,7 @@ import { ETAPAS, type Oportunidade } from '../lib/tipos'
 import { corAderencia, corPrazo, corRisco, moeda, rotuloPrazo } from '../lib/formato'
 import { Badge, Barra, FaixaDemo, Stat, Vazio } from '../ui/kit'
 import { useNavegacao } from '../ui/navegacao'
+import EditaisAbertos from './EditaisAbertos'
 import { useTema } from '../ui/tema'
 
 interface Linha { o: Oportunidade; a: Avaliacao }
@@ -129,6 +130,10 @@ export default function Visao() {
         <h1>Visão geral</h1>
         <p>Onde investir tempo agora — por valor esperado, prazo e confiança do dado.</p>
       </div>
+
+      {/* O que chegou dos órgãos vem primeiro: é o material novo do dia, e o
+          que tem prazo correndo. A carteira já trabalhada vem depois. */}
+      <EditaisAbertos />
 
       {/* ---------- filtros ---------- */}
       <div className="card card-p nao-imprime" style={{ marginBottom: 16 }}>
